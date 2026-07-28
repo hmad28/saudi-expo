@@ -1,94 +1,68 @@
 # Saudi Education Expo 2026
 
-Landing page resmi dan fondasi pengalaman digital untuk **Saudi Education Expo 2026 (SEE26)**—festival pendidikan yang menghubungkan pelajar Indonesia dengan universitas, beasiswa, alumni, dan peluang studi di Arab Saudi.
+Public event hub dan demonstrasi sistem ticketing untuk **Saudi Education Expo 2026 (SEE26)**—event yang mempertemukan pelajar Indonesia dengan universitas, penyedia beasiswa, alumni, dan komunitas mahasiswa di Arab Saudi.
 
-![Saudi Education Expo 2026](public/see26-hero.png)
+![Saudi Education Expo 2026](public/see26-cinematic-campus.png)
 
-## Tentang Proyek
+## Pengalaman Produk
 
-Website ini menerjemahkan identitas visual SEE26 menjadi pengalaman web yang premium, editorial, dan berorientasi konversi. Arah desainnya memadukan nuansa Saudi yang elegan dengan antarmuka event pendidikan yang tetap muda, mudah dibaca, dan nyaman digunakan melalui perangkat seluler.
+Website dirancang sebagai event hub yang modern, ringkas, ramah, dan berorientasi konversi. Halaman dibuka dengan satu pengalaman sinematik yang terukur: kamera bergerak perlahan melewati gerbang kampus menuju informasi event. Setelah itu, antarmuka kembali menjadi halaman event konvensional yang cepat dipindai dan nyaman digunakan dari tautan Instagram atau WhatsApp.
 
-Implementasi saat ini berfokus pada **landing page frontend**. Sistem transaksi, payment gateway, penerbitan QR, pengiriman email, dan dashboard internal merupakan tahap pengembangan berikutnya.
+- Hero langsung menampilkan nama event, tanggal, venue, dan CTA tiket.
+- Cinematic opening berbasis scroll dengan satu scene 2.5D yang koheren.
+- Afternovie dimuat hanya setelah pengguna menekan tombol play.
+- Ringkasan event, quick actions, statistik, agenda, pembicara, dan venue.
+- Ticket cards dengan harga, benefit, kuota, deadline, badge, dan CTA penuh.
+- Guest checkout empat langkah dengan order summary responsif.
+- Digital wallet pass dengan QR asli dan kode tiket.
+- Pencarian tiket, FAQ, kebijakan pembelian, dan sticky CTA mobile.
+- Dukungan `prefers-reduced-motion` dengan hero statis dan konten normal-flow.
+- Dashboard admin tetap compact dan data-focused; tidak menjadi bagian navigasi publik.
 
-## Fitur Saat Ini
+> Implementasi transaksi saat ini masih berupa demonstrasi frontend berbasis penyimpanan browser. Payment gateway, webhook, email transaksional, database, autentikasi admin, dan validasi server belum terhubung ke layanan produksi.
 
-- Hero editorial dengan informasi tanggal dan venue.
-- Countdown acara secara real-time.
-- Ringkasan event dan statistik utama.
-- Informasi program dan manfaat beasiswa.
-- Rundown interaktif untuk tiga hari acara.
-- Pilihan kategori tiket dan modal awal checkout.
-- Informasi venue dengan tautan Google Maps.
-- Partner dan jaringan pendidikan.
-- FAQ interaktif.
-- Navigasi responsif untuk desktop dan mobile.
-- Animasi masuk berbasis scroll dan micro-interactions.
-- Dukungan `prefers-reduced-motion`.
-- Layout mobile tanpa horizontal overflow.
+## Design System
 
-## Arah Visual
+Seluruh UI menggunakan **Plus Jakarta Sans**. Green dipakai sebagai warna aksi dan aksen—bukan sebagai latar setiap section.
 
-Identitas antarmuka dibangun dari empat prinsip:
-
-- **Premium Saudi Event** — emerald, cream, gold, dan arsitektur berbentuk arch.
-- **Modern Editorial** — tipografi display, komposisi lapang, dan hierarchy yang kuat.
-- **Educational & Trustworthy** — informasi penting tetap cepat dipindai dan tidak tertutup dekorasi.
-- **Conversion-focused** — CTA tiket, harga, benefit, kuota, dan informasi pembayaran dibuat jelas.
-
-Palet utama:
-
-| Token | Warna |
+| Token | Nilai |
 | --- | --- |
-| Deep emerald | `#0F3D2E` |
-| Forest green | `#174F3A` |
-| Dark green | `#082A20` |
-| Cream | `#F7F2E7` |
-| Warm white | `#FCFAF5` |
-| Gold | `#D5A347` |
+| Background | `#F6F7F5` |
+| Surface | `#FFFFFF` |
+| Surface soft | `#EEF4EF` |
+| Primary | `#078B4F` |
+| Primary dark | `#056B3D` |
+| Primary soft | `#DDF3E6` |
+| Text primary | `#121613` |
+| Text secondary | `#626B65` |
+| Border | `#DEE4DF` |
+| Gold accent | `#F1B93B` |
 
-## Tech Stack
+Konten menggunakan container terpusat dengan lebar maksimum sekitar `1040px`. Cards memakai radius `16–24px`, border tipis, shadow lembut, dan padding yang efisien. Button memiliki tinggi sentuh minimum `48px`.
+
+## Stack
 
 - [React 18](https://react.dev/)
 - [Vite 6](https://vite.dev/)
-- CSS custom properties dan responsive layout
-- Browser-native `IntersectionObserver`
+- [`qrcode.react`](https://github.com/zpao/qrcode.react)
+- CSS custom properties
+- Browser-native `IntersectionObserver`, `requestAnimationFrame`, dan media queries
 
-Tidak ada UI framework atau component library. Sistem visual, komponen, dan interaksi dibangun khusus untuk SEE26.
+Tidak ada GSAP, Lenis, Three.js, UI framework, atau component library besar.
 
-## Menjalankan Secara Lokal
-
-### Prasyarat
-
-- Node.js
-- npm
-
-### Instalasi
+## Menjalankan Lokal
 
 ```bash
 git clone https://github.com/hmad28/saudi-expo.git
 cd saudi-expo
 npm install
-```
-
-### Development
-
-```bash
 npm run dev
 ```
 
-Vite akan menampilkan alamat development server pada terminal.
-
-### Production Build
+Production build:
 
 ```bash
 npm run build
-```
-
-Hasil build tersedia di direktori `dist/`.
-
-### Preview Production Build
-
-```bash
 npm run preview
 ```
 
@@ -97,61 +71,45 @@ npm run preview
 | Perintah | Fungsi |
 | --- | --- |
 | `npm run dev` | Menjalankan Vite development server |
-| `npm run build` | Membuat optimized production build |
-| `npm run preview` | Menjalankan preview dari production build |
+| `npm run build` | Membuat production build |
+| `npm run preview` | Menjalankan preview production build |
 
-## Struktur Proyek
+## Struktur Utama
 
 ```text
 saudi-expo/
 ├── public/
-│   └── see26-hero.png     # Visual utama hero
+│   ├── favicon.svg
+│   └── see26-cinematic-campus.png
 ├── src/
-│   ├── main.jsx          # Konten, komponen, data, dan interaksi
-│   └── styles.css        # Design system dan responsive styling
-├── index.html            # HTML entry point dan metadata
-├── package.json          # Dependencies dan scripts
-└── README.md
+│   ├── components/
+│   │   ├── CinematicHero.jsx
+│   │   ├── EventOverview.jsx
+│   │   ├── TicketSection.jsx
+│   │   ├── CheckoutModal.jsx
+│   │   ├── TicketPassModal.jsx
+│   │   └── ...
+│   ├── utils/
+│   ├── main.jsx
+│   └── styles.css
+├── index.html
+└── package.json
 ```
 
-## Interaksi yang Tersedia
+## Catatan Produksi
 
-- Pilih tab **Hari 1–3** untuk mengganti rundown.
-- Pilih kategori tiket untuk membuka modal checkout.
-- Buka/tutup pertanyaan pada bagian FAQ.
-- Gunakan navigation anchor untuk berpindah section.
-- Gunakan menu layar penuh pada viewport mobile.
+Sebelum digunakan untuk penjualan publik, sistem masih membutuhkan:
 
-Modal checkout saat ini merupakan demonstrasi frontend dan belum membuat order atau memproses pembayaran.
-
-## Roadmap Produk
-
-Tahap berikutnya direncanakan mencakup:
-
-- Guest checkout dan data peserta.
-- Validasi harga serta reservasi kuota di backend.
-- Integrasi payment gateway dan webhook idempotent.
-- Tiket digital dengan QR unik.
-- Secure ticket link tanpa akun pembeli.
-- Email konfirmasi dan resend ticket.
-- Dashboard admin dan role petugas check-in.
-- QR scanner serta check-in manual.
-- Export transaksi dan peserta.
-- Audit log dan laporan operasional.
-
-Arsitektur target menggunakan Next.js, serverless PostgreSQL, autentikasi khusus admin, transactional email provider, dan deployment serverless.
-
-## Validasi
-
-Implementasi telah diverifikasi melalui:
-
-- Vite production build.
-- Pengujian navigasi dan layout desktop.
-- Pengujian viewport mobile `390 × 844`.
-- Pengujian tab rundown, accordion FAQ, modal tiket, dan mobile menu.
-- Pemeriksaan horizontal overflow.
+- validasi harga dan kuota di backend;
+- reservasi stok dalam transaksi database;
+- payment session dan webhook yang terverifikasi serta idempotent;
+- token akses dan check-in yang dibuat secara kriptografis;
+- pengiriman dan retry email transaksional;
+- autentikasi admin dan role-based access control;
+- rate limiting, audit log, monitoring, serta export data;
+- konten pembicara, partner, harga, dan kebijakan yang sudah dikonfirmasi panitia.
 
 ---
 
 **Saudi Education Expo 2026**  
-31 Juli–2 Agustus 2026 · SMESCO, Jakarta
+31 Juli–2 Agustus 2026 · SMESCO Indonesia, Jakarta

@@ -1,155 +1,97 @@
 import React, { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { getStoredDatabase } from "../utils/storage";
-import { QrCode } from "../utils/qr";
+import { Icon } from "./Icons";
 
 export function TicketPassModal({ accessToken, onClose }) {
   const db = getStoredDatabase();
-  const matchedOrder = db.orders.find((o) => o.accessToken === accessToken);
-  const matchedAttendees = db.attendees.filter((a) => a.accessToken === accessToken);
+  const order = db.orders.find((item) => item.accessToken === accessToken);
+  const attendees = db.attendees.filter((item) => item.accessToken === accessToken);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [toast, setToast] = useState("");
 
-  const [activeAttIndex, setActiveAttIndex] = useState(0);
-  const [copiedText, setCopiedText] = useState("");
-  const [emailAlert, setEmailAlert] = useState("");
-
-  if (!matchedOrder || matchedAttendees.length === 0) {
+  if (!order || attendees.length === 0) {
     return (
-      <div className="modal-backdrop" onMouseDown={onClose}>
-        <div className="ticket-pass-modal" onMouseDown={(e) => e.stopPropagation()}>
-          <button className="modal-close" onClick={onClose}>×</button>
-          <h2>Tiket Tidak Ditemukan</h2>
-          <p>Token akses tiket tidak valid atau telah kadaluwarsa.</p>
+      <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+        <div className="empty-pass-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+          <button className="icon-button modal-close" onClick={onClose} aria-label="Tutup"><Icon name="close" /></button>
+          <h2>Tiket tidak ditemukan</h2>
+          <p>Link tiket tidak valid atau sudah tidak aktif.</p>
         </div>
       </div>
     );
   }
 
-  const currentAttendee = matchedAttendees[activeAttIndex] || matchedAttendees[0];
-  const isCheckedIn = currentAttendee.checkinStatus === "CHECKED_IN";
-
-  const handleCopyCode = () => {
-    navigator.clipboard?.writeText(currentAttendee.ticketCode);
-    setCopiedText("Kode Tiket Disalin!");
-    setTimeout(() => setCopiedText(""), 2500);
+  const attendee = attendees[activeIndex] || attendees[0];
+  const checkedIn = attendee.checkinStatus === "CHECKED_IN";
+  const notify = (text) => {
+    setToast(text);
+    window.setTimeout(() => setToast(""), 2200);
   };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleResendEmail = () => {
-    setEmailAlert(`Simulasi: Tiket digital telah dikirim ulang ke ${matchedOrder.buyerEmail}!`);
-    setTimeout(() => setEmailAlert(""), 4000);
+  const copyCode = async () => {
+    await navigator.clipboard?.writeText(attendee.ticketCode);
+    notify("Kode tiket disalin.");
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="ticket-pass-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Tutup pass">
-          ×
-        </button>
+    <div className="modal-backdrop pass-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="pass-modal" role="dialog" aria-modal="true" aria-labelledby="pass-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="pass-modal-header">
+          <div><small>Digital pass</small><h2 id="pass-title">Tiket Saudi Education Expo</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup digital pass"><Icon name="close" /></button>
+        </header>
 
-        {/* Multi-ticket Tab Selector if quantity > 1 */}
-        {matchedAttendees.length > 1 && (
-          <div className="ticket-carousel-tabs">
-            {matchedAttendees.map((att, idx) => (
-              <button
-                key={att.id}
-                className={`pass-tab ${activeAttIndex === idx ? "active" : ""}`}
-                onClick={() => setActiveAttIndex(idx)}
-              >
-                Tiket #{idx + 1}: {att.name}
+        {attendees.length > 1 && (
+          <div className="pass-tabs" role="tablist" aria-label="Pilih tiket peserta">
+            {attendees.map((item, index) => (
+              <button key={item.id} role="tab" aria-selected={activeIndex === index} className={activeIndex === index ? "is-active" : ""} onClick={() => setActiveIndex(index)}>
+                {index + 1}. {item.name}
               </button>
             ))}
           </div>
         )}
 
-        {emailAlert && <div className="pass-toast-alert">{emailAlert}</div>}
-
-        {/* LUXURY DIGITAL TICKET PASS CARD */}
-        <div className="digital-pass-card">
-          <div className="pass-notch left" />
-          <div className="pass-notch right" />
-
-          <div className="pass-header">
-            <div className="pass-brand">
-              <span className="brand-badge">SEE26</span>
-              <div className="brand-text">
-                <strong>SAUDI EDUCATION EXPO 2026</strong>
-                <small>DIGITAL ENTRY PASS · SMESCO JAKARTA</small>
-              </div>
-            </div>
-            <div className={`pass-status-pill ${isCheckedIn ? "checked-in" : "active"}`}>
-              {isCheckedIn ? "✓ CHECKED-IN" : "🟢 ACTIVE PASS"}
-            </div>
+        <article className="wallet-pass">
+          <div className="wallet-pass-top">
+            <div className="wallet-brand"><span>SEE</span><div><strong>Saudi Education Expo</strong><small>31 Jul–2 Agu 2026</small></div></div>
+            <span className={`pass-status ${checkedIn ? "is-used" : ""}`}><i />{checkedIn ? "Sudah check-in" : "Aktif"}</span>
           </div>
-
-          <div className="pass-body">
-            <div className="pass-attendee-info">
-              <span className="pass-label">NAMA PESERTA</span>
-              <h2 className="attendee-name">{currentAttendee.name}</h2>
-              <p className="attendee-inst">🏫 {currentAttendee.institution || "Peserta Umum"}</p>
-              <div className="category-badge">{currentAttendee.ticketTypeName}</div>
-            </div>
-
-            {/* QR CODE CONTAINER */}
-            <div className="pass-qr-container">
-              <QrCode
-                value={`https://see26.id/check-in/${currentAttendee.checkinToken}`}
-                size={160}
-                fgColor="#082A20"
-                bgColor="#FCFAF5"
+          <div className="wallet-person">
+            <small>Nama peserta</small>
+            <h3>{attendee.name}</h3>
+            <span>{attendee.ticketTypeName}</span>
+          </div>
+          <div className="wallet-qr">
+            <div>
+              <QRCodeSVG
+                value={`https://see26.id/check-in/${attendee.checkinToken}`}
+                size={188}
+                level="M"
+                marginSize={2}
+                bgColor="#FFFFFF"
+                fgColor="#121613"
+                title={`QR check-in untuk ${attendee.name}`}
               />
-              <small className="qr-caption">SCAN AT CHECK-IN GATE</small>
             </div>
+            <p>Tunjukkan QR ini kepada petugas check-in.</p>
           </div>
-
-          <div className="pass-details-grid">
-            <div>
-              <small>KODE TIKET UNIK</small>
-              <b onClick={handleCopyCode} style={{ cursor: "pointer" }}>
-                {currentAttendee.ticketCode} 📋
-              </b>
-            </div>
-            <div>
-              <small>NOMOR BOOKING ORDER</small>
-              <b>{matchedOrder.orderNumber}</b>
-            </div>
-            <div>
-              <small>TANGGAL & WAKTU</small>
-              <b>31 Jul – 02 Agu 2026 (09:00 WIB)</b>
-            </div>
-            <div>
-              <small>LOKASI VENUE</small>
-              <b>SMESCO Exhibition Hall, Jakarta</b>
-            </div>
+          <div className="wallet-details">
+            <div><small>Tanggal</small><strong>31 Jul–2 Agu 2026</strong></div>
+            <div><small>Lokasi</small><strong>SMESCO, Jakarta</strong></div>
+            <div><small>Kode tiket</small><button onClick={copyCode}>{attendee.ticketCode}<Icon name="copy" size={15} /></button></div>
+            <div><small>Nomor pesanan</small><strong>{order.orderNumber}</strong></div>
           </div>
+          {checkedIn && <div className="used-message">Check-in tercatat pada {new Date(attendee.checkedInAt).toLocaleString("id-ID")}.</div>}
+        </article>
 
-          {copiedText && <div className="copy-toast">{copiedText}</div>}
-
-          {isCheckedIn && (
-            <div className="checkin-stamp-banner">
-              ✓ Telah Check-in pada: {new Date(currentAttendee.checkedInAt).toLocaleString("id-ID")} ({currentAttendee.checkedInBy})
-            </div>
-          )}
-
-          <div className="pass-footer-notes">
-            <small>🔒 Secure Cryptographic Token Hash · Non-transferable Pass · SEE26 Official</small>
-          </div>
+        <div className="pass-actions">
+          <button className="btn btn-secondary" onClick={() => window.print()}><Icon name="print" />Cetak</button>
+          <button className="btn btn-secondary" onClick={() => notify(`Tiket dikirim ulang ke ${order.buyerEmail}.`)}><Icon name="mail" />Kirim ulang</button>
+          <button className="btn btn-primary" onClick={copyCode}><Icon name="copy" />Salin kode</button>
         </div>
-
-        {/* PASS ACTION BUTTONS */}
-        <div className="pass-action-bar">
-          <button className="button outline" onClick={handlePrint}>
-            🖨️ Print Tiket
-          </button>
-          <button className="button outline" onClick={handleResendEmail}>
-            📧 Kirim Ulang Email
-          </button>
-          <button className="button primary" onClick={handleCopyCode}>
-            📋 Salin Kode Booking
-          </button>
-        </div>
-      </div>
+        <div className="pass-help"><Icon name="shield" size={17} />QR tidak menyimpan nama, email, atau nomor WhatsApp.</div>
+        {toast && <div className="toast" aria-live="polite">{toast}</div>}
+      </section>
     </div>
   );
 }

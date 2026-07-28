@@ -1,61 +1,38 @@
 import React, { useState } from "react";
+import { Icon } from "./Icons";
+
+const questions = [
+  ["Apakah pembelian tiket memerlukan akun?", "Tidak. Kamu dapat membeli tiket sebagai tamu. Data pembeli dan peserta dicatat langsung pada pesanan."],
+  ["Apakah satu tiket berlaku untuk seluruh event?", "Ya. Semua kategori tiket memberikan akses selama tiga hari sesuai benefit yang tertera pada masing-masing tiket."],
+  ["Apakah QR tiket harus dicetak?", "Tidak. Tunjukkan digital pass dari ponsel saat check-in. Kamu tetap dapat mencetak tiket bila diperlukan."],
+  ["Bagaimana jika email tiket tidak masuk?", "Periksa folder spam terlebih dahulu. Gunakan fitur Cek Tiket dengan nomor pesanan dan email pembelian untuk mengirim ulang akses tiket."],
+  ["Apakah anak-anak memerlukan tiket?", "Anak di bawah 6 tahun gratis tanpa alokasi kursi. Usia 6 tahun ke atas memerlukan tiket, dan anak di bawah 12 tahun wajib didampingi orang dewasa."],
+  ["Apakah tiket dapat di-refund?", "Transaksi yang berhasil bersifat final, kecuali event dibatalkan penyelenggara. Koreksi nama peserta dapat diajukan sebelum check-in."],
+];
 
 export function Faq() {
-  const [openFaq, setOpenFaq] = useState(0);
-
-  const faqs = [
-    [
-      "Apakah pembelian tiket membutuhkan registrasi akun?",
-      "Tidak. Sistem Saudi Expo menggunakan alur guest checkout tanpa akun. Identitas pembeli dan peserta disimpan langsung pada transaksi, dan tiket digital beserta QR unik dikirim ke email kamu.",
-    ],
-    [
-      "Apakah satu tiket berlaku untuk seluruh 3 hari acara?",
-      "Ya. Semua jenis tiket resmi (Student Pass, Early Access, Regular, VIP, Family) memberikan akses masuk selama 3 hari pameran (31 Juli – 2 Agustus 2026).",
-    ],
-    [
-      "Apakah QR tiket harus dicetak fisik?",
-      "Tidak wajib. Kamu dapat langsung menunjukkan QR tiket digital pada layar smartphone saat melalui check-in gate panitia. Tiket juga dapat dicetak dalam bentuk fisik jika diinginkan.",
-    ],
-    [
-      "Bagaimana jika email tiket saya tidak masuk atau terhapus?",
-      "Kamu dapat menggunakan fitur 'Cek Tiket Saya' di bagian navigasi atas website ini. Masukkan nomor pesanan (contoh: SE26-8F4K2P) dan alamat email pembelian untuk membuka kembali tiket atau mengirim ulang email.",
-    ],
-    [
-      "Bagaimana kebijakan tiket untuk anak-anak?",
-      "Anak di bawah usia 6 tahun gratis masuk tanpa alokasi kursi khusus. Anak usia 6 tahun ke atas memerlukan tiket resmi. Anak di bawah usia 12 tahun wajib didampingi oleh orang dewasa.",
-    ],
-    [
-      "Apakah tiket dapat dipindahtangankan atau di-refund?",
-      "Tiket yang sudah dibeli bersifat non-refundable (tidak dapat diuangkan kembali). Namun, kamu dapat melakukan koreksi nama peserta melalui layanan panitia atau dashboard admin sebelum waktu check-in.",
-    ],
-  ];
+  const [open, setOpen] = useState(0);
 
   return (
-    <section className="faq section" id="faq">
-      <div className="wrap faq-grid">
-        <div className="faq-title reveal visible">
-          <div className="eyebrow">
-            <span /> INFORMASI & PERTANYAAN
-          </div>
-          <h2>
-            Pertanyaan yang<br />
-            <em>sering diajukan.</em>
-          </h2>
-          <p>
-            Memiliki pertanyaan lain? Tim panitia SEE26 siap membantu melalui layanan bantuan resmi di lokasi maupun via email support@saudiexpo.id.
-          </p>
+    <section className="section-block faq-section" id="faq">
+      <div className="shell faq-layout">
+        <div className="faq-intro">
+          <span className="section-label">Pertanyaan umum</span>
+          <h2>Yang perlu kamu tahu sebelum datang.</h2>
+          <p>Belum menemukan jawaban? Hubungi tim SEE26 melalui kanal bantuan resmi.</p>
+          <a className="btn btn-secondary" href="mailto:support@saudiexpo.id">Hubungi Panitia</a>
         </div>
-
-        <div className="accordion reveal visible">
-          {faqs.map(([q, a], i) => (
-            <article className={openFaq === i ? "open" : ""} key={q}>
-              <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)}>
-                <span>{q}</span>
-                <b>{openFaq === i ? "−" : "+"}</b>
+        <div className="faq-list">
+          {questions.map(([question, answer], index) => (
+            <article className={open === index ? "is-open" : ""} key={question}>
+              <button
+                aria-expanded={open === index}
+                onClick={() => setOpen(open === index ? -1 : index)}
+              >
+                <span>{question}</span>
+                <Icon name={open === index ? "minus" : "plus"} size={20} />
               </button>
-              <div className="answer">
-                <p>{a}</p>
-              </div>
+              <div className="faq-answer"><p>{answer}</p></div>
             </article>
           ))}
         </div>

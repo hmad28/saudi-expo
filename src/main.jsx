@@ -1,49 +1,32 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 import { Navbar } from "./components/Navbar";
-import { Hero } from "./components/Hero";
-import { BentoStats } from "./components/BentoStats";
-import { About } from "./components/About";
-import { Program } from "./components/Program";
-import { ScholarshipSpotlight } from "./components/ScholarshipSpotlight";
-import { Speakers } from "./components/Speakers";
+import { CinematicHero } from "./components/CinematicHero";
+import { EventOverview } from "./components/EventOverview";
 import { Schedule } from "./components/Schedule";
+import { Speakers } from "./components/Speakers";
 import { TicketSection } from "./components/TicketSection";
 import { Venue } from "./components/Venue";
 import { Partners } from "./components/Partners";
 import { Faq } from "./components/Faq";
 import { Footer } from "./components/Footer";
-
 import { CheckoutModal } from "./components/CheckoutModal";
 import { TicketPassModal } from "./components/TicketPassModal";
 import { TicketLookupModal } from "./components/TicketLookupModal";
 import { AdminDashboard } from "./components/AdminDashboard";
-
 import { getStoredDatabase } from "./utils/storage";
 
 function App() {
-  const [db, setDb] = useState(getStoredDatabase());
-  const [activeMode, setActiveMode] = useState("landing"); // 'landing', 'lookup', 'admin'
+  const [db, setDb] = useState(() => getStoredDatabase());
+  const [activeMode, setActiveMode] = useState("landing");
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Selected Ticket for Checkout Modal
   const [selectedTicket, setSelectedTicket] = useState(null);
-
-  // Active Ticket Access Token for Digital Pass Modal
   const [activeAccessToken, setActiveAccessToken] = useState(null);
 
-  // Reload database state
-  const refreshDb = () => {
-    setDb(getStoredDatabase());
-  };
-
-  useEffect(() => {
-    refreshDb();
-  }, [activeMode, selectedTicket, activeAccessToken]);
-
-  const handleStartCheckout = (ticket = db.ticketTypes[1]) => {
+  const refreshDb = () => setDb(getStoredDatabase());
+  const startCheckout = (ticket = db.ticketTypes.find((item) => item.featured) || db.ticketTypes[0]) => {
     setSelectedTicket(ticket);
   };
 
@@ -54,37 +37,37 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {/* LANDING & PUBLIC MODES */}
+    <div className="app">
       {activeMode !== "admin" && (
-        <main id="top">
+        <>
           <Navbar
             activeMode={activeMode}
             setActiveMode={setActiveMode}
             menuOpen={menuOpen}
             setMenuOpen={setMenuOpen}
-            onBuyClick={() => handleStartCheckout()}
+            onBuyClick={() => startCheckout()}
           />
-
-          <Hero onBuyClick={() => handleStartCheckout()} />
-          <BentoStats />
-          <About />
-          <Program />
-          <ScholarshipSpotlight />
-          <Speakers />
-          <Schedule />
-          <TicketSection
-            ticketTypes={db.ticketTypes}
-            onSelectTicket={(ticket) => handleStartCheckout(ticket)}
-          />
-          <Venue />
-          <Partners />
-          <Faq />
-          <Footer onBuyClick={() => handleStartCheckout()} />
-        </main>
+          <main>
+            <CinematicHero onBuyClick={() => startCheckout()} />
+            <EventOverview
+              onBuyClick={() => startCheckout()}
+              onLookupClick={() => setActiveMode("lookup")}
+            />
+            <Schedule />
+            <Speakers />
+            <TicketSection ticketTypes={db.ticketTypes} onSelectTicket={startCheckout} />
+            <Venue />
+            <Partners />
+            <Faq />
+            <Footer onBuyClick={() => startCheckout()} />
+          </main>
+          <div className="mobile-ticket-bar">
+            <div><small>Tiket mulai</small><strong>Rp85.000</strong></div>
+            <button className="btn btn-primary" onClick={() => startCheckout()}>Beli Tiket</button>
+          </div>
+        </>
       )}
 
-      {/* ADMIN DASHBOARD MODE */}
       {activeMode === "admin" && (
         <AdminDashboard
           onClose={() => setActiveMode("landing")}
@@ -92,7 +75,6 @@ function App() {
         />
       )}
 
-      {/* CHECKOUT MODAL */}
       {selectedTicket && (
         <CheckoutModal
           ticket={selectedTicket}
@@ -101,15 +83,10 @@ function App() {
         />
       )}
 
-      {/* DIGITAL TICKET PASS MODAL */}
       {activeAccessToken && (
-        <TicketPassModal
-          accessToken={activeAccessToken}
-          onClose={() => setActiveAccessToken(null)}
-        />
+        <TicketPassModal accessToken={activeAccessToken} onClose={() => setActiveAccessToken(null)} />
       )}
 
-      {/* PUBLIC TICKET LOOKUP MODAL */}
       {activeMode === "lookup" && (
         <TicketLookupModal
           onClose={() => setActiveMode("landing")}
@@ -123,7 +100,4 @@ function App() {
   );
 }
 
-const rootElement = document.getElementById("root");
-if (rootElement) {
-  createRoot(rootElement).render(<App />);
-}
+createRoot(document.getElementById("root")).render(<App />);

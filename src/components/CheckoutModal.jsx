@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createOrder } from "../utils/storage";
+import { Icon } from "./Icons";
+
+const emptyAttendee = { fullName: "", institution: "" };
+const paymentMethods = [
+  ["QRIS", "QRIS", "Scan dari aplikasi bank atau e-wallet"],
+  ["Virtual Account BCA", "Virtual Account", "BCA, Mandiri, BNI, dan BRI"],
+  ["Kartu Kredit / Debit", "Kartu", "Visa dan Mastercard"],
+];
 
 export function CheckoutModal({ ticket, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [ticketCount, setTicketCount] = useState(1);
-
-  // Buyer Form State
-  const [buyerData, setBuyerData] = useState({
+  const [buyer, setBuyer] = useState({
     fullName: "",
     email: "",
     confirmEmail: "",
@@ -16,488 +22,237 @@ export function CheckoutModal({ ticket, onClose, onSuccess }) {
     category: "Pelajar SMA/MA",
     agreeTerms: false,
   });
-
-  // Attendees Data State
-  const [attendeesData, setAttendeesData] = useState([
-    { fullName: "", email: "", phone: "", institution: "" },
-  ]);
-
-  // Payment & Discount State
+  const [attendees, setAttendees] = useState([{ ...emptyAttendee }]);
   const [paymentMethod, setPaymentMethod] = useState("QRIS");
-  const [promoCode, setPromoCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [completedOrderResult, setCompletedOrderResult] = useState(null);
+  const [promo, setPromo] = useState("");
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [message, setMessage] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [result, setResult] = useState(null);
 
-  const unitPrice = ticket.price;
-  const subtotal = unitPrice * ticketCount;
-  const adminFee = 5000;
-  const discountAmount = discountApplied ? Math.round(subtotal * 0.1) : 0;
-  const totalAmount = subtotal + adminFee - discountAmount;
+  const pricing = useMemo(() => {
+    const subtotal = ticket.price * ticketCount;
+    const adminFee = 5000;
+    const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
+    return { subtotal, adminFee, discount, total: subtotal + adminFee - discount };
+  }, [ticket.price, ticketCount, promoApplied]);
 
-  const handleApplyPromo = () => {
-    if (promoCode.trim().toUpperCase() === "SAUDI2026") {
-      setDiscountApplied(true);
-      setErrorMessage("");
-    } else {
-      setErrorMessage("Kode promo tidak valid. Gunakan: SAUDI2026");
-    }
+  const formatMoney = (value) => `Rp${value.toLocaleString("id-ID")}`;
+  const changeBuyer = (key, value) => setBuyer((current) => ({ ...current, [key]: value }));
+
+  const changeCount = (nextCount) => {
+    const count = Math.min(ticket.maxPerOrder || 5, Math.max(1, nextCount));
+    setTicketCount(count);
+    setAttendees((current) => {
+      const next = current.slice(0, count);
+      while (next.length < count) next.push({ ...emptyAttendee });
+      return next;
+    });
   };
 
-  const handleBuyerSubmit = (e) => {
-    e.preventDefault();
-    setErrorMessage("");
+  const goToBuyer = () => {
+    setMessage("");
+    setStep(2);
+  };
 
-    if (!buyerData.fullName.trim()) return setErrorMessage("Nama lengkap wajib diisi.");
-    if (!buyerData.email.trim()) return setErrorMessage("Email aktif wajib diisi.");
-    if (buyerData.email.trim().toLowerCase() !== buyerData.confirmEmail.trim().toLowerCase()) {
-      return setErrorMessage("Konfirmasi email tidak cocok dengan email utama.");
+  const submitBuyer = (event) => {
+    event.preventDefault();
+    setMessage("");
+    if (buyer.email.trim().toLowerCase() !== buyer.confirmEmail.trim().toLowerCase()) {
+      setMessage("Email dan konfirmasi email belum sama.");
+      return;
     }
-    if (!buyerData.phone.trim()) return setErrorMessage("Nomor WhatsApp wajib diisi.");
-    if (!buyerData.city.trim()) return setErrorMessage("Domisili kota wajib diisi.");
-    if (!buyerData.institution.trim()) return setErrorMessage("Instansi / Sekolah wajib diisi.");
-    if (!buyerData.agreeTerms) return setErrorMessage("Kamu harus menyetujui syarat & ketentuan.");
-
-    // Sync attendee #1 default
-    const newAtts = [...attendeesData];
-    if (!newAtts[0] || !newAtts[0].fullName) {
-      newAtts[0] = {
-        fullName: buyerData.fullName,
-        email: buyerData.email,
-        phone: buyerData.phone,
-        institution: buyerData.institution,
-      };
+    if (!buyer.agreeTerms) {
+      setMessage("Setujui syarat pembelian untuk melanjutkan.");
+      return;
     }
-    // Adjust array size to match ticketCount
-    while (newAtts.length < ticketCount) {
-      newAtts.push({ fullName: "", email: "", phone: "", institution: buyerData.institution });
-    }
-    setAttendeesData(newAtts.slice(0, ticketCount));
-
+    setAttendees((current) => current.map((attendee, index) => index === 0 && !attendee.fullName
+      ? { fullName: buyer.fullName, institution: buyer.institution }
+      : attendee));
     setStep(3);
   };
 
-  const handleAttendeesSubmit = (e) => {
-    e.preventDefault();
-    setErrorMessage("");
-
-    for (let i = 0; i < ticketCount; i++) {
-      if (!attendeesData[i]?.fullName?.trim()) {
-        return setErrorMessage(`Nama lengkap Peserta #${i + 1} wajib diisi.`);
-      }
+  const submitAttendees = (event) => {
+    event.preventDefault();
+    const incomplete = attendees.findIndex((attendee) => !attendee.fullName.trim());
+    if (incomplete !== -1) {
+      setMessage(`Lengkapi nama peserta ${incomplete + 1}.`);
+      return;
     }
-
+    setMessage("");
     setStep(4);
   };
 
-  const handleExecutePayment = () => {
-    setIsProcessing(true);
-    setErrorMessage("");
-
-    setTimeout(() => {
-      try {
-        const result = createOrder({
-          buyerData,
-          ticketType: ticket,
-          ticketCount,
-          attendeesData,
-          paymentMethod,
-          discountCode: discountApplied ? "SAUDI2026" : "",
-        });
-
-        setCompletedOrderResult(result);
-        setIsProcessing(false);
-        setStep(5);
-      } catch (err) {
-        setIsProcessing(false);
-        setErrorMessage(err.message || "Gagal memproses transaksi");
-      }
-    }, 1500);
+  const applyPromo = () => {
+    if (promo.trim().toUpperCase() === "SAUDI2026") {
+      setPromoApplied(true);
+      setMessage("Promo 10% berhasil digunakan.");
+    } else {
+      setPromoApplied(false);
+      setMessage("Kode promo belum valid.");
+    }
   };
 
+  const pay = () => {
+    setProcessing(true);
+    setMessage("");
+    window.setTimeout(() => {
+      try {
+        const orderResult = createOrder({
+          buyerData: buyer,
+          ticketType: ticket,
+          ticketCount,
+          attendeesData: attendees,
+          paymentMethod,
+          discountCode: promoApplied ? "SAUDI2026" : "",
+        });
+        setResult(orderResult);
+        setStep(5);
+      } catch (error) {
+        setMessage(error.message || "Pesanan belum dapat diproses.");
+      } finally {
+        setProcessing(false);
+      }
+    }, 900);
+  };
+
+  const summary = (
+    <div className="order-summary">
+      <div className="summary-ticket">
+        <span className="ticket-badge">{ticket.featured ? "Paling diminati" : "Tiket SEE26"}</span>
+        <h3>{ticket.name}</h3>
+        <p>{ticketCount} tiket · berlaku 3 hari</p>
+      </div>
+      <div className="summary-lines">
+        <div><span>Subtotal</span><strong>{formatMoney(pricing.subtotal)}</strong></div>
+        <div><span>Biaya layanan</span><strong>{formatMoney(pricing.adminFee)}</strong></div>
+        {pricing.discount > 0 && <div className="discount-line"><span>Diskon</span><strong>−{formatMoney(pricing.discount)}</strong></div>}
+      </div>
+      <div className="summary-total"><span>Total pembayaran</span><strong>{formatMoney(pricing.total)}</strong></div>
+      <p className="summary-secure"><Icon name="shield" size={17} />Data dan pembayaran diproses secara aman.</p>
+    </div>
+  );
+
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="checkout-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Tutup checkout">
-          ×
-        </button>
-
-        {/* Stepper Header */}
-        <div className="checkout-stepper">
-          <div className={`step-item ${step >= 1 ? "active" : ""}`}>
-            <span>1</span>
-            <small>Pilih Tiket</small>
+    <div className="modal-backdrop checkout-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="checkout-header">
+          <div>
+            <span>Checkout SEE26</span>
+            <h2 id="checkout-title">{step === 5 ? "Pesanan berhasil" : "Selesaikan pemesanan"}</h2>
           </div>
-          <div className={`step-item ${step >= 2 ? "active" : ""}`}>
-            <span>2</span>
-            <small>Data Pembeli</small>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup checkout"><Icon name="close" /></button>
+        </header>
+
+        {step < 5 && (
+          <div className="checkout-progress" aria-label={`Langkah ${step} dari 4`}>
+            {["Tiket", "Pembeli", "Peserta", "Bayar"].map((label, index) => (
+              <div className={step >= index + 1 ? "is-active" : ""} key={label}>
+                <span>{index + 1}</span><small>{label}</small>
+              </div>
+            ))}
           </div>
-          <div className={`step-item ${step >= 3 ? "active" : ""}`}>
-            <span>3</span>
-            <small>Data Peserta</small>
-          </div>
-          <div className={`step-item ${step >= 4 ? "active" : ""}`}>
-            <span>4</span>
-            <small>Pembayaran</small>
-          </div>
-        </div>
+        )}
 
-        {errorMessage && <div className="checkout-error">⚠️ {errorMessage}</div>}
+        {step < 5 && (
+          <details className="mobile-order-summary">
+            <summary><span>Ringkasan pesanan</span><strong>{formatMoney(pricing.total)}</strong></summary>
+            {summary}
+          </details>
+        )}
 
-        {/* STEP 1: Select Ticket Quantity */}
-        {step === 1 && (
-          <div className="checkout-step-body">
-            <div className="eyebrow">
-              <span /> LANGKAH 1 DARI 4
-            </div>
-            <h2>Ringkasan Tiket Dipilih</h2>
-            <p className="checkout-note">
-              Kamu memilih kategori <strong>{ticket.name}</strong> ({ticket.note}).
-            </p>
+        {message && <div className={`form-message ${promoApplied ? "is-success" : ""}`} aria-live="polite">{message}</div>}
 
-            <div className="quantity-selector">
-              <label>Jumlah Tiket:</label>
-              <div className="qty-controls">
-                <button
-                  type="button"
-                  onClick={() => setTicketCount(Math.max(1, ticketCount - 1))}
-                  disabled={ticketCount <= 1}
-                >
-                  −
-                </button>
-                <span>{ticketCount}</span>
-                <button
-                  type="button"
-                  onClick={() => setTicketCount(Math.min(ticket.maxPerOrder || 5, ticketCount + 1))}
-                  disabled={ticketCount >= (ticket.maxPerOrder || 5)}
-                >
-                  +
-                </button>
-              </div>
-              <small>Maksimal {ticket.maxPerOrder || 5} tiket per order</small>
-            </div>
-
-            <div className="order-summary-box">
-              <div className="summary-row">
-                <span>{ticketCount} × {ticket.name}</span>
-                <strong>Rp {subtotal.toLocaleString("id-ID")}</strong>
-              </div>
-              <div className="summary-row">
-                <span>Biaya Layanan Admin</span>
-                <strong>Rp {adminFee.toLocaleString("id-ID")}</strong>
-              </div>
-              <div className="summary-row total">
-                <span>Estimasi Total</span>
-                <strong>Rp {totalAmount.toLocaleString("id-ID")}</strong>
-              </div>
-            </div>
-
-            <button className="button primary wide" onClick={() => setStep(2)}>
-              Lanjut Isi Data Pembeli
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        {step === 5 && result ? (
+          <div className="checkout-success">
+            <span className="success-icon"><Icon name="check" size={30} /></span>
+            <h3>Pembayaran berhasil.</h3>
+            <p>Digital pass untuk {ticketCount} peserta sudah dibuat.</p>
+            <div><span>Nomor pesanan</span><strong>{result.order.orderNumber}</strong></div>
+            <button className="btn btn-primary btn-full" onClick={() => onSuccess(result.accessToken)}>
+              Buka Digital Pass <Icon name="arrow" />
             </button>
           </div>
-        )}
-
-        {/* STEP 2: Buyer Data */}
-        {step === 2 && (
-          <form className="checkout-step-body" onSubmit={handleBuyerSubmit}>
-            <div className="eyebrow">
-              <span /> LANGKAH 2 DARI 4
-            </div>
-            <h2>Identitas Pembeli (Tanpa Akun)</h2>
-            <p className="checkout-note warning-text">
-              📌 Pastikan email aktif & benar. Tiket digital dan QR Code unik akan dikirimkan ke email ini.
-            </p>
-
-            <div className="form-grid">
-              <label>
-                Nama Lengkap Pembeli *
-                <input
-                  type="text"
-                  placeholder="Contoh: Muhammad Farhan"
-                  value={buyerData.fullName}
-                  onChange={(e) => setBuyerData({ ...buyerData, fullName: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label>
-                Email Aktif *
-                <input
-                  type="email"
-                  placeholder="nama@email.com"
-                  value={buyerData.email}
-                  onChange={(e) => setBuyerData({ ...buyerData, email: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label>
-                Konfirmasi Email * (Ketik Ulang Email)
-                <input
-                  type="email"
-                  placeholder="Ketik ulang email untuk verifikasi"
-                  value={buyerData.confirmEmail}
-                  onChange={(e) => setBuyerData({ ...buyerData, confirmEmail: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label>
-                Nomor WhatsApp *
-                <input
-                  type="tel"
-                  placeholder="081234567890"
-                  value={buyerData.phone}
-                  onChange={(e) => setBuyerData({ ...buyerData, phone: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label>
-                Kota Domisili *
-                <input
-                  type="text"
-                  placeholder="Contoh: Jakarta Selatan"
-                  value={buyerData.city}
-                  onChange={(e) => setBuyerData({ ...buyerData, city: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label>
-                Instansi / Sekolah / Kampus *
-                <input
-                  type="text"
-                  placeholder="Contoh: UIN Syarif Hidayatullah / SMA 1"
-                  value={buyerData.institution}
-                  onChange={(e) => setBuyerData({ ...buyerData, institution: e.target.value })}
-                  required
-                />
-              </label>
-
-              <label className="full-width">
-                Kategori Pendaftar
-                <select
-                  value={buyerData.category}
-                  onChange={(e) => setBuyerData({ ...buyerData, category: e.target.value })}
-                >
-                  <option value="Pelajar SMA/MA">Pelajar SMA/MA</option>
-                  <option value="Santri">Santri Pondok Pesantren</option>
-                  <option value="Mahasiswa">Mahasiswa S1/S2/S3</option>
-                  <option value="Orang Tua / Wali">Orang Tua / Wali</option>
-                  <option value="Umum & Profesional">Umum & Profesional</option>
-                </select>
-              </label>
-
-              <label className="checkbox-label full-width">
-                <input
-                  type="checkbox"
-                  checked={buyerData.agreeTerms}
-                  onChange={(e) => setBuyerData({ ...buyerData, agreeTerms: e.target.checked })}
-                />
-                Saya mengonfirmasi bahwa data di atas sudah benar dan menyetujui syarat & ketentuan SEE26.
-              </label>
-            </div>
-
-            <div className="btn-group">
-              <button type="button" className="button outline" onClick={() => setStep(1)}>
-                Kembali
-              </button>
-              <button type="submit" className="button primary">
-                Lanjut Data Peserta
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* STEP 3: Attendee Data */}
-        {step === 3 && (
-          <form className="checkout-step-body" onSubmit={handleAttendeesSubmit}>
-            <div className="eyebrow">
-              <span /> LANGKAH 3 DARI 4
-            </div>
-            <h2>Data Peserta Event ({ticketCount} Tiket)</h2>
-            <p className="checkout-note">
-              Setiap peserta akan menerima QR Code tiket unik yang berbeda untuk check-in di venue.
-            </p>
-
-            <div className="attendee-forms-list">
-              {attendeesData.map((att, idx) => (
-                <div key={idx} className="attendee-card-item">
-                  <h4>Peserta #{idx + 1}</h4>
-                  <div className="form-grid">
-                    <label>
-                      Nama Lengkap Peserta *
-                      <input
-                        type="text"
-                        placeholder={`Nama Peserta #${idx + 1}`}
-                        value={att.fullName}
-                        onChange={(e) => {
-                          const updated = [...attendeesData];
-                          updated[idx].fullName = e.target.value;
-                          setAttendeesData(updated);
-                        }}
-                        required
-                      />
-                    </label>
-
-                    <label>
-                      Instansi / Sekolah
-                      <input
-                        type="text"
-                        placeholder="Instansi"
-                        value={att.institution}
-                        onChange={(e) => {
-                          const updated = [...attendeesData];
-                          updated[idx].institution = e.target.value;
-                          setAttendeesData(updated);
-                        }}
-                      />
-                    </label>
+        ) : (
+          <div className="checkout-layout">
+            <div className="checkout-content">
+              {step === 1 && (
+                <div className="checkout-step">
+                  <span className="form-label">Tiket dipilih</span>
+                  <div className="selected-ticket">
+                    <div><h3>{ticket.name}</h3><p>{ticket.note}</p></div>
+                    <strong>{formatMoney(ticket.price)}</strong>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="btn-group">
-              <button type="button" className="button outline" onClick={() => setStep(2)}>
-                Kembali
-              </button>
-              <button type="submit" className="button primary">
-                Lanjut ke Pembayaran
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* STEP 4: Payment Selection & Summary */}
-        {step === 4 && (
-          <div className="checkout-step-body">
-            <div className="eyebrow">
-              <span /> LANGKAH 4 DARI 4
-            </div>
-            <h2>Metode Pembayaran</h2>
-
-            {/* Promo Code Box */}
-            <div className="promo-box">
-              <input
-                type="text"
-                placeholder="Kode Promo (Coba: SAUDI2026)"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value)}
-                disabled={discountApplied}
-              />
-              <button
-                type="button"
-                className="button outline"
-                onClick={handleApplyPromo}
-                disabled={discountApplied || !promoCode.trim()}
-              >
-                {discountApplied ? "Terpasang ✓" : "Gunakan Promo"}
-              </button>
-            </div>
-
-            {/* Payment Methods */}
-            <div className="payment-options">
-              {[
-                { id: "QRIS", name: "QRIS (GoPay, OVO, ShopeePay, Dana, LinkAja)", icon: "📱" },
-                { id: "Virtual Account BCA", name: "Virtual Account BCA", icon: "🏦" },
-                { id: "Virtual Account Mandiri", name: "Virtual Account Mandiri", icon: "🏦" },
-                { id: "Virtual Account BNI", name: "Virtual Account BNI", icon: "🏦" },
-                { id: "Kartu Kredit / Debit", name: "Kartu Kredit / Debit Visa & MasterCard", icon: "💳" },
-              ].map((method) => (
-                <label
-                  key={method.id}
-                  className={`payment-option-card ${paymentMethod === method.id ? "selected" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value={method.id}
-                    checked={paymentMethod === method.id}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <span className="pay-icon">{method.icon}</span>
-                  <span className="pay-name">{method.name}</span>
-                </label>
-              ))}
-            </div>
-
-            {/* Final Order Breakdown */}
-            <div className="order-summary-box">
-              <div className="summary-row">
-                <span>{ticketCount} × {ticket.name}</span>
-                <span>Rp {subtotal.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="summary-row">
-                <span>Biaya Layanan Admin</span>
-                <span>Rp {adminFee.toLocaleString("id-ID")}</span>
-              </div>
-              {discountApplied && (
-                <div className="summary-row discount">
-                  <span>Diskon Promo SAUDI2026 (10%)</span>
-                  <span>- Rp {discountAmount.toLocaleString("id-ID")}</span>
+                  <label className="form-label" htmlFor="ticket-quantity">Jumlah tiket</label>
+                  <div className="quantity-control" id="ticket-quantity">
+                    <button type="button" onClick={() => changeCount(ticketCount - 1)} disabled={ticketCount === 1} aria-label="Kurangi tiket"><Icon name="minus" /></button>
+                    <strong>{ticketCount}</strong>
+                    <button type="button" onClick={() => changeCount(ticketCount + 1)} disabled={ticketCount >= (ticket.maxPerOrder || 5)} aria-label="Tambah tiket"><Icon name="plus" /></button>
+                  </div>
+                  <small className="field-hint">Maksimal {ticket.maxPerOrder || 5} tiket per pesanan.</small>
+                  <button className="btn btn-primary btn-full" onClick={goToBuyer}>Lanjutkan <Icon name="arrow" /></button>
                 </div>
               )}
-              <div className="summary-row total">
-                <span>TOTAL BAYAR</span>
-                <strong>Rp {totalAmount.toLocaleString("id-ID")}</strong>
-              </div>
-            </div>
 
-            <div className="btn-group">
-              <button type="button" className="button outline" onClick={() => setStep(3)} disabled={isProcessing}>
-                Kembali
-              </button>
-              <button
-                type="button"
-                className="button primary wide"
-                onClick={handleExecutePayment}
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Memproses Webhook Gateway..." : "Bayar Sekarang"}
-              </button>
+              {step === 2 && (
+                <form className="checkout-step" onSubmit={submitBuyer}>
+                  <div className="form-heading"><h3>Data pembeli</h3><p>Tiket dan konfirmasi dikirim ke email ini.</p></div>
+                  <div className="form-grid">
+                    <label>Nama lengkap<input name="name" autoComplete="name" value={buyer.fullName} onChange={(event) => changeBuyer("fullName", event.target.value)} placeholder="Nama sesuai identitas…" required /></label>
+                    <label>Email aktif<input type="email" name="email" autoComplete="email" spellCheck="false" value={buyer.email} onChange={(event) => changeBuyer("email", event.target.value)} placeholder="nama@email.com…" required /></label>
+                    <label>Konfirmasi email<input type="email" name="confirmEmail" autoComplete="off" spellCheck="false" value={buyer.confirmEmail} onChange={(event) => changeBuyer("confirmEmail", event.target.value)} placeholder="Ketik ulang email…" required /></label>
+                    <label>Nomor WhatsApp<input type="tel" name="phone" autoComplete="tel" inputMode="tel" value={buyer.phone} onChange={(event) => changeBuyer("phone", event.target.value)} placeholder="08xxxxxxxxxx…" required /></label>
+                    <label>Kota domisili<input name="city" autoComplete="address-level2" value={buyer.city} onChange={(event) => changeBuyer("city", event.target.value)} placeholder="Contoh: Bandung…" required /></label>
+                    <label>Instansi / sekolah<input name="organization" autoComplete="organization" value={buyer.institution} onChange={(event) => changeBuyer("institution", event.target.value)} placeholder="Nama sekolah atau kampus…" required /></label>
+                    <label className="form-span">Kategori peserta<select value={buyer.category} onChange={(event) => changeBuyer("category", event.target.value)}>
+                      <option>Pelajar SMA/MA</option><option>Santri</option><option>Mahasiswa</option><option>Orang Tua / Wali</option><option>Umum & Profesional</option>
+                    </select></label>
+                    <label className="check-control form-span"><input type="checkbox" checked={buyer.agreeTerms} onChange={(event) => changeBuyer("agreeTerms", event.target.checked)} /><span>Saya menyetujui syarat pembelian dan memastikan data sudah benar.</span></label>
+                  </div>
+                  <div className="form-actions"><button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>Kembali</button><button className="btn btn-primary" type="submit">Data Peserta <Icon name="arrow" /></button></div>
+                </form>
+              )}
+
+              {step === 3 && (
+                <form className="checkout-step" onSubmit={submitAttendees}>
+                  <div className="form-heading"><h3>Data peserta</h3><p>Setiap peserta mendapatkan satu QR unik.</p></div>
+                  <div className="attendee-list">
+                    {attendees.map((attendee, index) => (
+                      <fieldset key={index}>
+                        <legend>Peserta {index + 1}</legend>
+                        <label>Nama lengkap<input value={attendee.fullName} onChange={(event) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, fullName: event.target.value } : item))} placeholder="Nama peserta…" required /></label>
+                        <label>Instansi<input value={attendee.institution} onChange={(event) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, institution: event.target.value } : item))} placeholder="Sekolah, kampus, atau institusi…" /></label>
+                      </fieldset>
+                    ))}
+                  </div>
+                  <div className="form-actions"><button type="button" className="btn btn-secondary" onClick={() => setStep(2)}>Kembali</button><button className="btn btn-primary" type="submit">Pilih Pembayaran <Icon name="arrow" /></button></div>
+                </form>
+              )}
+
+              {step === 4 && (
+                <div className="checkout-step">
+                  <div className="form-heading"><h3>Metode pembayaran</h3><p>Pilih metode yang paling nyaman.</p></div>
+                  <div className="payment-list">
+                    {paymentMethods.map(([id, title, detail]) => (
+                      <label className={paymentMethod === id ? "is-selected" : ""} key={id}>
+                        <input type="radio" name="payment" value={id} checked={paymentMethod === id} onChange={(event) => setPaymentMethod(event.target.value)} />
+                        <span><strong>{title}</strong><small>{detail}</small></span>
+                        <i />
+                      </label>
+                    ))}
+                  </div>
+                  <div className="promo-control">
+                    <label htmlFor="promo-code">Kode promo</label>
+                    <div><input id="promo-code" value={promo} disabled={promoApplied} onChange={(event) => setPromo(event.target.value)} placeholder="Masukkan kode promo…" /><button className="btn btn-secondary" type="button" onClick={applyPromo} disabled={!promo.trim() || promoApplied}>{promoApplied ? "Digunakan" : "Terapkan"}</button></div>
+                  </div>
+                  <div className="form-actions"><button className="btn btn-secondary" onClick={() => setStep(3)} disabled={processing}>Kembali</button><button className="btn btn-primary pay-button" onClick={pay} disabled={processing}>{processing ? "Memproses…" : `Bayar ${formatMoney(pricing.total)}`}</button></div>
+                </div>
+              )}
             </div>
+            <aside className="desktop-order-summary">{summary}</aside>
           </div>
         )}
-
-        {/* STEP 5: Success Confirmation Screen */}
-        {step === 5 && completedOrderResult && (
-          <div className="checkout-step-body success-body">
-            <div className="success-icon-badge">✓</div>
-            <div className="eyebrow gold">
-              <span /> PEMBAYARAN BERHASIL
-            </div>
-            <h2>Tiket Digital Diterbitkan!</h2>
-
-            <div className="order-number-banner">
-              <small>NOMOR PESANAN KODE BOOKING:</small>
-              <strong>{completedOrderResult.order.orderNumber}</strong>
-            </div>
-
-            <p className="checkout-note">
-              Email konfirmasi beserta QR tiket unik telah dikirim ke <strong>{buyerData.email}</strong>.
-            </p>
-
-            <div className="success-actions">
-              <button
-                className="button primary wide"
-                onClick={() => {
-                  onClose();
-                  onSuccess(completedOrderResult.accessToken);
-                }}
-              >
-                🎟️ Buka Tiket Digital Saya
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

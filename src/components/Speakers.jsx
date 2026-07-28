@@ -1,78 +1,61 @@
 import React from "react";
 
+const speakers = [
+  {
+    name: "Dr. Ahmad Al-Ghamdi",
+    role: "International Admissions",
+    institution: "Ministry of Education KSA",
+    topic: "Arah pendidikan Saudi & peluang mahasiswa internasional",
+    photo: "/speaker-1.jpg",
+  },
+  {
+    name: "Ustadz Akhmad Jakfar",
+    role: "Narasumber & Alumni UIM",
+    institution: "PPMI Arab Saudi",
+    topic: "Strategi menyiapkan aplikasi Study in Saudi",
+    photo: "/speaker-2.jpg",
+  },
+  {
+    name: "Dr. Sara Al-Hassan",
+    role: "Academic Coordinator",
+    institution: "King Saud University",
+    topic: "Peluang riset, sains, dan teknik di Riyadh",
+    photo: "/speaker-3.jpg",
+  },
+  {
+    name: "Azka Afif Zuhair",
+    role: "Student Community",
+    institution: "Northern Border University",
+    topic: "Kehidupan kampus dan komunitas Indonesia",
+    photo: "/speaker-4.jpg",
+  },
+];
+
 export function Speakers() {
-  const speakers = [
-    {
-      name: "Dr. Ahmad Al-Ghamdi",
-      role: "Director of International Admissions",
-      inst: "Ministry of Education KSA",
-      topic: "Kebijakan Recrutment Beasiswa Internasional 2026 & Saudi Vision 2030",
-      photo: "/speaker-1.jpg",
-      time: "Hari 1 · 09.30 WIB",
-    },
-    {
-      name: "Ustadz Akhmad Jakfar",
-      role: "Narasumber Utama & Alumni UIM",
-      inst: "PPMI Arab Saudi",
-      topic: "Bedah Strategi Lolos Portal Study in Saudi & Pilihan Jurusan",
-      photo: "/speaker-2.jpg",
-      time: "Hari 1 · 13.30 WIB",
-    },
-    {
-      name: "Dr. Sara Al-Hassan",
-      role: "Senior Academic Coordinator",
-      inst: "King Saud University",
-      topic: "Peluang Riset Sains, Kedokteran & Rekayasa Teknik di Kampus Riyadh",
-      photo: "/speaker-3.jpg",
-      time: "Hari 2 · 10.30 WIB",
-    },
-    {
-      name: "Azka Afif Zuhair",
-      role: "Kadiv Marketing SEE26 & Alumni NBU",
-      inst: "Northern Border University",
-      topic: "Navigasi Kehidupan Kampus, Persiapan Bahasa Arab & Komunitas Santri",
-      photo: "/speaker-4.jpg",
-      time: "Hari 2 · 13.00 WIB",
-    },
-  ];
-
   return (
-    <section className="speakers section dark-section" id="pembicara">
-      <div className="wrap">
-        <div className="section-heading reveal visible">
+    <section className="section-block speakers-section" id="pembicara">
+      <div className="shell">
+        <div className="section-head">
           <div>
-            <div className="eyebrow gold">
-              <span /> KEYNOTE SPEAKERS & ALUMNI
-            </div>
-            <h2>
-              Belajar langsung dari<br />
-              <em>pakar dan alumni terbaik.</em>
-            </h2>
+            <span className="section-label">Pembicara & alumni</span>
+            <h2>Dengar langsung dari yang berpengalaman.</h2>
+            <p>Kenali proses studi di Saudi dari perspektif institusi, alumni, dan komunitas pelajar.</p>
           </div>
-          <p>
-            Dapatkan insight otentik mengenai seleksi beasiswa, kehidupan kampus di Arab Saudi, dan peluang karir setelah lulus.
-          </p>
         </div>
-
         <div className="speaker-grid">
-          {speakers.map((sp) => (
-            <article className="speaker-card reveal visible" key={sp.name}>
-              <div className="speaker-arch-frame">
-                <img src={sp.photo} alt={sp.name} className="speaker-photo" />
-                <span className="speaker-time-badge">{sp.time}</span>
-              </div>
-              <div className="speaker-info">
-                <h3>{sp.name}</h3>
-                <span className="speaker-role">{sp.role}</span>
-                <small className="speaker-inst">{sp.inst}</small>
-                <div className="speaker-topic">
-                  <strong>Topik Sesi:</strong>
-                  <p>"{sp.topic}"</p>
-                </div>
+          {speakers.map((speaker) => (
+            <article className="speaker-card" key={speaker.name}>
+              <img src={speaker.photo} alt={speaker.name} width="640" height="800" loading="lazy" />
+              <div>
+                <span>{speaker.institution}</span>
+                <h3>{speaker.name}</h3>
+                <p>{speaker.role}</p>
+                <small>{speaker.topic}</small>
               </div>
             </article>
           ))}
         </div>
+        <p className="content-note">Daftar pembicara dapat berubah. Jadwal final akan diumumkan melalui kanal resmi SEE26.</p>
       </div>
     </section>
   );

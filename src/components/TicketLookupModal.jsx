@@ -1,104 +1,50 @@
 import React, { useState } from "react";
 import { getStoredDatabase } from "../utils/storage";
+import { Icon } from "./Icons";
 
 export function TicketLookupModal({ onClose, onOpenPass }) {
   const [orderNumber, setOrderNumber] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [isError, setIsError] = useState(false);
-  const [foundAccessToken, setFoundAccessToken] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
 
-  const handleLookup = (e) => {
-    e.preventDefault();
-    setMessage("");
-    setIsError(false);
-
-    if (!orderNumber.trim() || !email.trim()) {
-      setIsError(true);
-      return setMessage("Silakan isi Nomor Pesanan dan Email.");
-    }
-
+  const lookup = (event) => {
+    event.preventDefault();
     const db = getStoredDatabase();
-    const matched = db.orders.find(
-      (o) =>
-        o.orderNumber.trim().toUpperCase() === orderNumber.trim().toUpperCase() &&
-        o.buyerEmail.trim().toLowerCase() === email.trim().toLowerCase()
+    const order = db.orders.find((item) =>
+      item.orderNumber.toUpperCase() === orderNumber.trim().toUpperCase()
+      && item.buyerEmail.toLowerCase() === email.trim().toLowerCase()
     );
-
-    if (matched) {
-      setFoundAccessToken(matched.accessToken);
-      setMessage(`Pesanan ${matched.orderNumber} ditemukan! Status: ${matched.status}`);
-    } else {
-      setIsError(true);
-      setMessage("Data pesanan tidak ditemukan. Periksa kembali Nomor Pesanan & Email.");
+    if (!order) {
+      setAccessToken(null);
+      setMessage("Detail pesanan belum cocok. Periksa nomor pesanan dan email.");
+      return;
     }
+    setAccessToken(order.accessToken);
+    setMessage("Pesanan ditemukan. Kamu dapat membuka digital pass.");
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="ticket-modal lookup-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Tutup pencarian">
-          ×
-        </button>
-
-        <div className="eyebrow">
-          <span /> BANTUAN TIKET SAYA
-        </div>
-        <h2>Cari & Kirim Ulang Tiket</h2>
-        <p>
-          Lupa menyimpan tiket digital? Masukkan nomor pesanan (contoh: <code>SE26-8F4K2P</code>) dan alamat email pembelian kamu.
-        </p>
-
-        {message && (
-          <div className={`lookup-alert ${isError ? "error" : "success"}`}>
-            {message}
-          </div>
-        )}
-
-        {!foundAccessToken ? (
-          <form onSubmit={handleLookup}>
-            <label>
-              Nomor Pesanan (Order Number) *
-              <input
-                type="text"
-                placeholder="SE26-8F4K2P"
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                required
-              />
-            </label>
-
-            <label>
-              Email Pembelian *
-              <input
-                type="email"
-                placeholder="nama@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </label>
-
-            <button type="submit" className="button primary wide">
-              Cari Tiket Saya
-            </button>
-            <small>🔒 Proteksi Rate Limit & Privasi Data Terjamin</small>
-          </form>
-        ) : (
-          <div className="found-ticket-box">
-            <p>Tiket aktif ditemukan!</p>
-            <button
-              className="button primary wide"
-              onClick={() => {
-                onClose();
-                onOpenPass(foundAccessToken);
-              }}
-            >
-              🎟️ Buka Tiket Digital Sekarang
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="lookup-modal" role="dialog" aria-modal="true" aria-labelledby="lookup-title" onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <span className="lookup-icon"><Icon name="ticket" /></span>
+          <div><small>Bantuan tiket</small><h2 id="lookup-title">Buka kembali tiketmu</h2></div>
+          <button className="icon-button" onClick={onClose} aria-label="Tutup pencarian tiket"><Icon name="close" /></button>
+        </header>
+        <p>Gunakan nomor pesanan dan email yang sama saat checkout.</p>
+        <form onSubmit={lookup}>
+          <label>Nomor pesanan<input value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} autoComplete="off" placeholder="Contoh: SE26-8F4K2P…" required /></label>
+          <label>Email pembelian<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" spellCheck="false" placeholder="nama@email.com…" required /></label>
+          {message && <div className={`lookup-message ${accessToken ? "is-success" : ""}`} aria-live="polite">{message}</div>}
+          {!accessToken ? (
+            <button className="btn btn-primary btn-full" type="submit">Cari Tiket <Icon name="search" /></button>
+          ) : (
+            <button className="btn btn-primary btn-full" type="button" onClick={() => onOpenPass(accessToken)}>Buka Digital Pass <Icon name="arrow" /></button>
+          )}
+        </form>
+        <small className="lookup-note"><Icon name="shield" size={16} />Jangan bagikan nomor pesanan dan akses tiket kepada orang lain.</small>
+      </section>
     </div>
   );
 }

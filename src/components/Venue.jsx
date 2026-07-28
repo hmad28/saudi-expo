@@ -1,55 +1,34 @@
 import React from "react";
+import { Icon } from "./Icons";
 
 export function Venue() {
   return (
-    <section className="venue section" id="venue">
-      <div className="venue-art">
-        <div className="pattern" />
-        <span className="venue-word">JAKARTA</span>
-      </div>
-
-      <div className="wrap venue-grid">
-        <div className="venue-copy reveal visible">
-          <div className="eyebrow gold">
-            <span /> LOKASI STRATEGIS VENUE
-          </div>
-          <h2>
-            Di pusat kota<br />
-            <em>Jakarta Selatan.</em>
-          </h2>
-          <p>
-            SMESCO Exhibition & Convention Hall menawarkan ruang pameran seluas ribuan meter persegi, akses transportasi publik mudah (LRT, TransJakarta, Tol Gatot Subroto), serta fasilitas gedung modern.
-          </p>
-          <a
-            className="button primary"
-            href="https://maps.google.com/?q=SMESCO+Indonesia+Jakarta"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Buka Navigasi Google Maps
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M7 17L17 7M8 7h9v9" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
-        </div>
-
-        <div className="venue-card reveal visible">
-          <img src="/smesco-venue.jpg" alt="SMESCO Convention Hall" className="venue-image" />
-          <span className="venue-label">EXHIBITION HALL</span>
-          <h3>SMESCO Exhibition & Convention Hall</h3>
-          <p>Jl. Jend. Gatot Subroto Kav. 94, Pancoran, Jakarta Selatan, DKI Jakarta 12780</p>
-
-          <div className="venue-meta">
-            <div>
-              <small>TANGGAL EVENT</small>
-              <b>31 Jul – 02 Agu 2026</b>
-            </div>
-            <div>
-              <small>JAM OPERASIONAL</small>
-              <b>09.00 – 18.00 WIB</b>
-            </div>
+    <section className="section-block venue-section" id="venue">
+      <div className="shell">
+        <div className="section-head">
+          <div>
+            <span className="section-label">Lokasi event</span>
+            <h2>Mudah dijangkau dari berbagai arah.</h2>
           </div>
         </div>
+        <article className="venue-card">
+          <div className="venue-image-wrap">
+            <img src="/smesco-venue.jpg" alt="SMESCO Exhibition and Convention Hall" width="1200" height="800" loading="lazy" />
+            <span className="map-pin"><Icon name="pin" size={21} /></span>
+          </div>
+          <div className="venue-content">
+            <span className="venue-tag">SMESCO Indonesia</span>
+            <h3>Exhibition & Convention Hall</h3>
+            <p>Jl. Jend. Gatot Subroto Kav. 94, Pancoran, Jakarta Selatan 12780</p>
+            <div className="venue-facts">
+              <div><Icon name="calendar" /><span><small>Tanggal</small><strong>31 Jul–2 Agu 2026</strong></span></div>
+              <div><Icon name="pin" /><span><small>Jam buka</small><strong>09.00–18.00 WIB</strong></span></div>
+            </div>
+            <a className="btn btn-primary" href="https://maps.google.com/?q=SMESCO+Indonesia+Jakarta" target="_blank" rel="noreferrer">
+              Buka di Google Maps <Icon name="arrow" size={18} />
+            </a>
+          </div>
+        </article>
       </div>
     </section>
   );

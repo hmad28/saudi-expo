@@ -1,35 +1,35 @@
 import React from "react";
 
+const partners = [
+  ["PPMI Arab Saudi", "Strategic partner"],
+  ["Study in Saudi", "Official portal"],
+  ["Ministry of Education KSA", "Education network"],
+  ["SMESCO Indonesia", "Venue partner"],
+  ["Islamic University of Madinah", "Academic network"],
+  ["King Saud University", "Academic network"],
+  ["Umm Al-Qura University", "Academic network"],
+  ["Alumni Saudi Indonesia", "Community network"],
+];
+
 export function Partners() {
-  const partners = [
-    { name: "PPMI Arab Saudi", tier: "Strategic Partner" },
-    { name: "Study in Saudi", tier: "Official Portal" },
-    { name: "Ministry of Education KSA", tier: "Governing Body" },
-    { name: "SMESCO Indonesia", tier: "Venue Host" },
-    { name: "Trisna Group Networks", tier: "Event Partner" },
-    { name: "Islamic University of Madinah", tier: "Academic Partner" },
-    { name: "King Saud University", tier: "Academic Partner" },
-    { name: "Umm Al-Qura University", tier: "Academic Partner" },
-  ];
-
   return (
-    <section className="partners section">
-      <div className="wrap">
-        <div className="partner-heading reveal visible">
-          <span>Didukung oleh Jaringan Pendidikan Bilateral</span>
-          <p>
-            Kerjasama strategis antara organisasi mahasiswa internasional, kementerian pendidikan, universitas negeri KSA, dan jaringan alumni Indonesia.
-          </p>
+    <section className="section-block partner-section">
+      <div className="shell">
+        <div className="section-head compact-head">
+          <div>
+            <span className="section-label">Jaringan event</span>
+            <h2>Terhubung dengan ekosistem pendidikan Saudi.</h2>
+          </div>
         </div>
-
-        <div className="logo-row reveal visible">
-          {partners.map((p) => (
-            <div key={p.name} className="partner-chip">
-              <strong>{p.name}</strong>
-              <small>{p.tier}</small>
+        <div className="partner-grid">
+          {partners.map(([name, type]) => (
+            <div className="partner-logo" key={name}>
+              <strong>{name}</strong>
+              <small>{type}</small>
             </div>
           ))}
         </div>
+        <p className="content-note">Daftar partner dan institusi akan diperbarui setelah konfirmasi resmi penyelenggara.</p>
       </div>
     </section>
   );
