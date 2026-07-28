@@ -1,62 +1,34 @@
 # Saudi Education Expo 2026
 
-Public event hub untuk **Saudi Education Expo 2026 (SEE26)**, kelanjutan agenda tahunan yang pada 2025 dikenal sebagai **Saudi University Expo**.
+Campaign hub, jadwal, pemilihan tiket, guest checkout, pembayaran manual, dan digital ticket untuk **Saudi Education Expo 2026** oleh **PPMI Arab Saudi**.
 
-![Saudi Education Expo 2026](public/see26-cinematic-campus.webp)
+Event berlangsung pada **31 Juli–2 Agustus 2026** di **SMESCO Exhibition & Convention Hall, Jakarta**.
 
-## Pengalaman Produk
+## Pengalaman yang Dibangun
 
-Website dirancang sebagai event hub yang modern, ringkas, ramah, dan berorientasi informasi. Halaman dibuka dengan visual gateway yang sinematik, sementara judul, deskripsi, tanggal, lokasi, dan CTA tetap statis serta mudah dibaca. Setelah itu, antarmuka kembali menjadi halaman event konvensional yang cepat dipindai.
+- Campaign-collage hero menggunakan logo resmi SEE 2026.
+- Countdown berbasis zona waktu `Asia/Jakarta`.
+- Sejarah Saudi University Expo 2025 → Saudi Education Expo 2026.
+- Program, audiens, outcome, institutional trust, dan daftar 24 pembicara terkonfirmasi.
+- Jadwal lengkap tiga hari dengan filter hari dan stage.
+- Ticket selector berdasarkan kategori dengan state available, sold out, dan incomplete configuration.
+- Guest checkout dengan buyer dan attendee terpisah.
+- Voucher UI, donasi opsional, manual bank transfer, dan upload bukti pembayaran.
+- Development admin untuk approve/reject pembayaran.
+- Satu digital ticket dan QR terpisah untuk setiap attendee.
+- Bundle check-in menggunakan satu QR dengan validasi harian.
+- Syarat dan ketentuan serta age policy.
+- Mobile sticky ticket CTA dan checkout CTA.
+- Reduced motion, keyboard focus, semantic navigation, dan accessible FAQ.
 
-- Hero langsung menampilkan nama event, tanggal, venue, dan CTA tiket.
-- Cinematic opening berbasis scroll desktop dengan satu scene 2.5D yang koheren.
-- Mobile memakai hero normal-flow dengan gerak minimal.
-- Narasi historis dari Saudi University Expo 2025 ke Saudi Education Expo 2026.
-- Deskripsi resmi, alasan event, aktivitas, audiens, dan outcome peserta.
-- Controlled “Segera diumumkan” states untuk agenda, speaker, institusi, tiket, partner, dan dokumentasi yang belum resmi.
-- Venue, FAQ berbasis materi terkonfirmasi, dan sticky CTA mobile.
-- Dukungan `prefers-reduced-motion` dengan hero statis dan konten normal-flow.
-- Tidak ada angka, nama, jadwal, harga, atau klaim partner yang dibuat untuk mengisi kekosongan konten.
-
-> Penjualan tiket belum dibuka pada UI karena data resmi kategori, harga, benefit, periode, dan kuota belum diberikan. Sistem menampilkan status terkontrol sampai informasi penyelenggara tersedia.
-
-## Design System
-
-Seluruh UI menggunakan **Plus Jakarta Sans**. Green dipakai sebagai warna aksi dan aksen—bukan sebagai latar setiap section.
-
-| Token | Nilai |
-| --- | --- |
-| Background | `#F5F7F5` |
-| Surface | `#FFFFFF` |
-| Surface soft | `#EDF5F0` |
-| Primary | `#078B4F` |
-| Primary dark | `#075436` |
-| Green 900 | `#063D28` |
-| Primary soft | `#DDF3E6` |
-| Text primary | `#101713` |
-| Text secondary | `#667069` |
-| Border | `#DCE5DF` |
-| Gold accent | `#F1B93B` |
-
-Konten menggunakan container terpusat dengan lebar maksimum sekitar `1040px`. Cards memakai radius `16–24px`, border tipis, shadow lembut, dan padding yang efisien. Button memiliki tinggi sentuh minimum `48px`.
-
-## Stack
-
-- [React 18](https://react.dev/)
-- [Vite 6](https://vite.dev/)
-- CSS custom properties
-- Browser-native `IntersectionObserver`, `requestAnimationFrame`, dan media queries
-
-Tidak ada GSAP, Lenis, Three.js, UI framework, atau component library besar.
-
-## Menjalankan Lokal
+## Menjalankan Project
 
 ```bash
-git clone https://github.com/hmad28/saudi-expo.git
-cd saudi-expo
 npm install
 npm run dev
 ```
+
+Vite akan menampilkan alamat development server, biasanya `http://localhost:5173`.
 
 Production build:
 
@@ -65,52 +37,163 @@ npm run build
 npm run preview
 ```
 
-## Scripts
+## Event Data
 
-| Perintah | Fungsi |
-| --- | --- |
-| `npm run dev` | Menjalankan Vite development server |
-| `npm run build` | Membuat production build |
-| `npm run preview` | Menjalankan preview production build |
-
-## Struktur Utama
+Seluruh identitas, waktu, venue, highlight, speaker, jadwal, tiket, age policy, FAQ, dan unresolved organizer decisions berada di:
 
 ```text
-saudi-expo/
-├── public/
-│   ├── favicon.svg
-│   ├── see26-cinematic-campus.webp
-│   ├── see26-cinematic-campus-mobile.webp
-│   ├── see26-og.jpg
-│   └── ...
-├── src/
-│   ├── components/
-│   │   ├── CinematicHero.jsx
-│   │   ├── EventOverview.jsx
-│   │   ├── TicketSection.jsx
-│   │   ├── Documentation.jsx
-│   │   └── ...
-│   ├── utils/
-│   ├── main.jsx
-│   └── styles.css
-├── index.html
-└── package.json
+src/data/eventConfig.js
 ```
 
-## Catatan Produksi
+Jangan menulis ulang tanggal, harga, atau venue langsung di komponen. Perbarui konfigurasi tersebut agar landing, checkout, pembayaran, admin, dan tiket memakai sumber yang sama.
 
-Sebelum digunakan untuk penjualan publik, sistem masih membutuhkan data resmi dan integrasi:
+Core browser-side ticketing adapter berada di:
 
-- validasi harga dan kuota di backend;
-- reservasi stok dalam transaksi database;
-- payment session dan webhook yang terverifikasi serta idempotent;
-- token akses dan check-in yang dibuat secara kriptografis;
-- pengiriman dan retry email transaksional;
-- autentikasi admin dan role-based access control;
-- rate limiting, audit log, monitoring, serta export data;
-- konten pembicara, institusi, partner, agenda, tiket, dokumentasi, dan kebijakan yang sudah dikonfirmasi panitia.
+```text
+src/utils/storage.js
+```
 
----
+Adapter ini memakai `localStorage` untuk mendemonstrasikan lifecycle produk. Ia bukan pengganti backend produksi.
 
-**Saudi Education Expo 2026**  
-31 Juli–2 Agustus 2026 · SMESCO Indonesia, Jakarta
+## Routes
+
+| Route | Fungsi |
+| --- | --- |
+| `/` | Campaign hub dan ticket selection |
+| `/checkout?ticket=regular-d1&qty=1` | Guest checkout |
+| `/payment/:secureToken` | Instruksi dan konfirmasi pembayaran |
+| `/ticket/:secureToken` | Digital ticket |
+| `/terms` | Syarat dan ketentuan |
+| `/admin` | Development payment review |
+
+Vite hosting perlu dikonfigurasi untuk SPA fallback agar deep link route tetap membuka `index.html`.
+
+## Ticket Product Rules
+
+Produk yang dapat dibeli pada konfigurasi saat ini:
+
+- Regular — Day 1, `Rp49.000`
+- Regular — Day 3, `Rp49.000`
+
+Produk sold out:
+
+- Bundle Regular — 3 Hari
+- Regular — Day 2
+- Rombongan — Day 2
+
+Produk berikut sengaja dinonaktifkan karena mekaniknya belum lengkap:
+
+- Rombongan — Day 1 dan Day 3
+- Couple Promo — Day 1
+- Beli 2 Gratis 1 — Day 1
+
+Status tersebut tidak boleh diaktifkan sampai field konfigurasi yang terkait dikonfirmasi organizer.
+
+## Missing Official Assets
+
+Sistem tidak menghasilkan foto orang atau dokumentasi event menggunakan AI. Asset slot netral dipakai sampai organizer memberikan:
+
+- dokumentasi Saudi University Expo 2025;
+- thumbnail dan URL aftermovie 2025;
+- foto resmi 24 pembicara, metadata, dan izin publikasi;
+- foto seminar, booth, audience, dan committee;
+- poster kampanye resmi untuk collage hero;
+- foto SMESCO yang telah diverifikasi;
+- logo partner dan sponsor.
+
+Logo yang saat ini digunakan:
+
+```text
+public/SEE26-logo.png
+public/SEE26-logo-2.jpg
+```
+
+## Organizer Decisions Required
+
+- Final gate-opening time.
+- Final public event hours.
+- Final Campus & Scholarship Expo hours.
+- Status publikasi klaim 25+ booth.
+- Minimum dan maksimum tiket rombongan.
+- Data yang wajib diisi peserta rombongan.
+- Makna harga, jumlah QR, dan souvenir Couple Promo.
+- Jumlah QR dan souvenir Beli 2 Gratis 1.
+- Ticket transfer dan on-site sales policy.
+- Kapasitas seminar dan workshop.
+- Metadata, foto, dan izin publikasi pembicara.
+- Partner dan sponsor.
+
+Konfigurasi menyimpan waktu `08:30`, `09:00`, dan `18:00` sebagai nilai provisional yang diberi TODO eksplisit.
+
+## QA
+
+Automated browser checks:
+
+```bash
+python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
+  --server "npm run dev -- --host 127.0.0.1" \
+  --port 5173 \
+  -- python scripts/qa_public.py
+
+python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
+  --server "npm run dev -- --host 127.0.0.1" \
+  --port 5173 \
+  -- python scripts/qa_ticketing.py
+```
+
+`qa_public.py` memeriksa:
+
+- 1440×900
+- 1280×720
+- 1024×768
+- 768×1024
+- 390×844
+- horizontal overflow
+- console errors
+- schedule tabs dan stage filter
+- sold-out behavior
+- reduced motion
+- mobile checkout
+
+`qa_ticketing.py` menjalankan:
+
+```text
+checkout
+→ order
+→ manual payment proof
+→ admin approval
+→ digital ticket
+→ QR generation
+```
+
+## Production Boundaries
+
+Implementasi checkout saat ini adalah development-grade product prototype. Sebelum penjualan publik, ganti browser storage dengan backend/serverless implementation yang menyediakan:
+
+- PostgreSQL dan transaction-safe inventory reservation;
+- server-side schema validation dan immutable pricing snapshot;
+- secure token hash storage;
+- admin authentication, RBAC, MFA, dan audit identity;
+- payment gateway session dan verified idempotent webhook;
+- private object storage untuk bukti pembayaran;
+- virus/MIME/metadata inspection untuk upload;
+- transactional email provider dan retry queue;
+- order expiry worker;
+- rate limiting dan CSRF protection;
+- production QR validation endpoint;
+- privacy, refund, dan data-retention review;
+- server-generated invoice/PDF;
+- monitoring, error tracking, dan database backups.
+
+Automatic gateway sengaja dinonaktifkan karena repository tidak memiliki provider credentials atau backend webhook.
+
+## Stack
+
+- React 18
+- Vite 6
+- Vanilla CSS
+- `qrcode`
+- Bricolage Grotesque
+- Plus Jakarta Sans
+- Barlow Condensed
+- Python Playwright untuk QA
