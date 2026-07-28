@@ -1,35 +1,5 @@
 import React from "react";
-
-const speakers = [
-  {
-    name: "Dr. Ahmad Al-Ghamdi",
-    role: "International Admissions",
-    institution: "Ministry of Education KSA",
-    topic: "Arah pendidikan Saudi & peluang mahasiswa internasional",
-    photo: "/speaker-1.jpg",
-  },
-  {
-    name: "Ustadz Akhmad Jakfar",
-    role: "Narasumber & Alumni UIM",
-    institution: "PPMI Arab Saudi",
-    topic: "Strategi menyiapkan aplikasi Study in Saudi",
-    photo: "/speaker-2.jpg",
-  },
-  {
-    name: "Dr. Sara Al-Hassan",
-    role: "Academic Coordinator",
-    institution: "King Saud University",
-    topic: "Peluang riset, sains, dan teknik di Riyadh",
-    photo: "/speaker-3.jpg",
-  },
-  {
-    name: "Azka Afif Zuhair",
-    role: "Student Community",
-    institution: "Northern Border University",
-    topic: "Kehidupan kampus dan komunitas Indonesia",
-    photo: "/speaker-4.jpg",
-  },
-];
+import { Icon } from "./Icons";
 
 export function Speakers() {
   return (
@@ -37,25 +7,15 @@ export function Speakers() {
       <div className="shell">
         <div className="section-head">
           <div>
-            <span className="section-label">Pembicara & alumni</span>
-            <h2>Dengar langsung dari yang berpengalaman.</h2>
-            <p>Kenali proses studi di Saudi dari perspektif institusi, alumni, dan komunitas pelajar.</p>
+            <span className="section-label">Pembicara & institusi peserta</span>
+            <h2>Menunggu konfirmasi resmi.</h2>
+            <p>Nama pembicara, kampus, dan institusi hanya akan ditampilkan setelah diumumkan oleh penyelenggara.</p>
           </div>
         </div>
-        <div className="speaker-grid">
-          {speakers.map((speaker) => (
-            <article className="speaker-card" key={speaker.name}>
-              <img src={speaker.photo} alt={speaker.name} width="640" height="800" loading="lazy" />
-              <div>
-                <span>{speaker.institution}</span>
-                <h3>{speaker.name}</h3>
-                <p>{speaker.role}</p>
-                <small>{speaker.topic}</small>
-              </div>
-            </article>
-          ))}
+        <div className="dual-announcement">
+          <div className="announcement-state"><span className="announcement-icon"><Icon name="users" size={26} /></span><div><small>Pembicara</small><h3>Segera diumumkan</h3><p>Line-up resmi belum dipublikasikan.</p></div></div>
+          <div className="announcement-state"><span className="announcement-icon"><Icon name="university" size={26} /></span><div><small>Institusi peserta</small><h3>Segera diumumkan</h3><p>Daftar institusi terkonfirmasi belum dipublikasikan.</p></div></div>
         </div>
-        <p className="content-note">Daftar pembicara dapat berubah. Jadwal final akan diumumkan melalui kanal resmi SEE26.</p>
       </div>
     </section>
   );

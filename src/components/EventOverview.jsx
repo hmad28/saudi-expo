@@ -1,108 +1,109 @@
-import React, { useState } from "react";
+import React from "react";
 import { Icon } from "./Icons";
 
-export function EventOverview({ onBuyClick, onLookupClick }) {
-  const [videoOpen, setVideoOpen] = useState(false);
+const activities = [
+  ["university", "Seminar Inspiratif", "Memahami peluang studi, proses persiapan, dan gambaran pendidikan di Arab Saudi dari narasumber yang relevan."],
+  ["users", "Talkshow Alumni", "Mendengar pengalaman nyata tentang pendaftaran, perkuliahan, adaptasi, dan kehidupan pelajar Indonesia di Saudi."],
+  ["scholarship", "Workshop Interaktif", "Mempelajari langkah praktis untuk menyiapkan pilihan studi dan kebutuhan pendaftaran dengan lebih terarah."],
+  ["map", "Booth Kampus Saudi", "Mencari informasi program dan jalur studi dari institusi yang telah dikonfirmasi oleh penyelenggara."],
+  ["ticket", "Bazar & Community Experience", "Mengenal komunitas, budaya, serta jaringan pendukung yang dekat dengan kehidupan pelajar di Arab Saudi."],
+];
 
-  const actions = [
-    { icon: "university", title: "Kampus & beasiswa", text: "Lihat peluang studi dan fasilitas beasiswa.", href: "#tentang" },
-    { icon: "calendar", title: "Agenda 3 hari", text: "Atur sesi dan konsultasi yang ingin kamu ikuti.", href: "#agenda" },
-    { icon: "ticket", title: "Pilih tiket", text: "Bandingkan akses, benefit, dan sisa kuota.", href: "#tiket" },
-    { icon: "search", title: "Cek tiketmu", text: "Buka kembali tiket menggunakan detail pesanan.", action: onLookupClick },
-  ];
+const audiences = [
+  ["Pelajar SMA atau sederajat", "Mencari peluang studi jenjang sarjana di Arab Saudi."],
+  ["Mahasiswa", "Mencari peluang pendidikan jenjang S2 atau S3."],
+  ["Guru dan pendidik", "Memperluas referensi untuk mendampingi calon pelajar."],
+  ["Masyarakat umum", "Tertarik memahami pilihan dan proses studi di Arab Saudi."],
+];
 
+const outcomes = [
+  "Memahami jalur studi yang sesuai dengan tujuan pendidikan.",
+  "Mengetahui sumber informasi kampus dan beasiswa yang relevan.",
+  "Menyusun pertanyaan dan langkah persiapan pendaftaran.",
+  "Mendapat gambaran kehidupan pelajar Indonesia di Arab Saudi.",
+];
+
+export function EventOverview({ onTicketClick }) {
   return (
     <>
       <section className="event-profile section-compact" id="tentang">
         <div className="shell">
-          <div className="profile-card">
+          <div className="profile-card official-summary">
             <div className="profile-main">
-              <span className="profile-badge">Festival pendidikan Arab Saudi</span>
-              <h2>Semua informasi studi Saudi, dalam satu tempat.</h2>
-              <p>
-                Saudi Education Expo membantu pelajar, santri, mahasiswa, dan orang tua memahami pilihan kampus, beasiswa pemerintah, persiapan dokumen, dan kehidupan mahasiswa di Arab Saudi.
-              </p>
+              <span className="profile-badge">Agenda tahunan</span>
+              <h2>Saudi Education Expo 2026</h2>
+              <p>Agenda kolaboratif PPMI Saudi dan organisasi wilayahnya yang diselenggarakan melalui kepanitiaan independen untuk membantu masyarakat Indonesia mengakses informasi studi di Arab Saudi.</p>
             </div>
             <div className="profile-side">
-              <div><Icon name="calendar" /><span><small>Tanggal</small><strong>31 Jul–2 Agu 2026</strong></span></div>
-              <div><Icon name="pin" /><span><small>Lokasi</small><strong>SMESCO, Jakarta</strong></span></div>
-              <button className="btn btn-primary" onClick={onBuyClick}>Beli Tiket</button>
+              <div><Icon name="calendar" /><span><small>Tanggal</small><strong>31 Juli–2 Agustus 2026</strong></span></div>
+              <div><Icon name="pin" /><span><small>Tempat</small><strong>SMESCO Indonesia, Jakarta</strong></span></div>
+              <button className="btn btn-primary" onClick={onTicketClick}>Informasi Tiket</button>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="media-section section-compact">
-        <div className="shell">
-          <button className="aftermovie-card" onClick={() => setVideoOpen(true)}>
-            <img src="/see26-cinematic-campus.png" alt="" loading="lazy" width="1820" height="1024" />
-            <span className="aftermovie-overlay" />
-            <span className="aftermovie-content">
-              <span className="preview-play"><Icon name="play" size={22} /></span>
-              <span><small>Aftermovie & event preview</small><strong>Lihat suasana Saudi Education Expo</strong></span>
-            </span>
-          </button>
-        </div>
-      </section>
-
-      <section className="quick-actions section-compact" aria-label="Akses cepat">
-        <div className="shell quick-grid">
-          {actions.map((item) => item.action ? (
-            <button className="quick-card" onClick={item.action} key={item.title}>
-              <span className="quick-icon"><Icon name={item.icon} /></span>
-              <span><strong>{item.title}</strong><small>{item.text}</small></span>
-              <Icon name="chevron" className="quick-arrow" />
-            </button>
-          ) : (
-            <a className="quick-card" href={item.href} key={item.title}>
-              <span className="quick-icon"><Icon name={item.icon} /></span>
-              <span><strong>{item.title}</strong><small>{item.text}</small></span>
-              <Icon name="chevron" className="quick-arrow" />
-            </a>
-          ))}
-        </div>
-      </section>
-
-      <section className="intro-section section-block">
-        <div className="shell intro-grid">
+      <section className="section-block history-section" id="sejarah">
+        <div className="shell history-grid">
           <div>
-            <span className="section-label">Yang akan kamu dapatkan</span>
-            <h2>Datang dengan pertanyaan. Pulang dengan rencana.</h2>
-            <p>
-              Bukan hanya mengumpulkan brosur. Kamu bisa membandingkan kampus, bertanya langsung, meninjau kesiapan dokumen, dan terhubung dengan komunitas yang sudah lebih dulu menjalani prosesnya.
-            </p>
+            <span className="section-label">Satu agenda, terus berkembang</span>
+            <h2>Dari Saudi University Expo menuju Saudi Education Expo.</h2>
+            <p>Saudi Expo bukan event baru yang berdiri sendiri. Ini adalah agenda tahunan yang berkembang dari inisiatif pengenalan universitas menjadi platform informasi pendidikan Saudi yang lebih luas.</p>
           </div>
-          <div className="benefit-list">
-            {[
-              ["university", "Konsultasi kampus", "Diskusikan jurusan dan persyaratan dengan narasumber."],
-              ["scholarship", "Bedah beasiswa", "Pahami fasilitas, dokumen, dan alur Study in Saudi."],
-              ["users", "Cerita alumni", "Dapatkan gambaran nyata tentang studi dan kehidupan di Saudi."],
-            ].map(([icon, title, text]) => (
-              <article key={title}>
-                <span><Icon name={icon} /></span>
-                <div><h3>{title}</h3><p>{text}</p></div>
-              </article>
+          <div className="history-timeline">
+            <article><span>2025</span><div><small>Identitas sebelumnya</small><h3>Saudi University Expo</h3><p>Berawal dari inisiatif untuk memperkenalkan universitas-universitas di Arab Saudi kepada masyarakat Indonesia.</p></div></article>
+            <article className="is-current"><span>2026</span><div><small>Identitas saat ini</small><h3>Saudi Education Expo</h3><p>Ruang lingkup berkembang untuk menghadirkan informasi kampus, beasiswa, pendaftaran, dan kehidupan pelajar secara lebih menyeluruh.</p></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section className="section-block about-official">
+        <div className="shell editorial-pair">
+          <article>
+            <span className="section-label">Apa itu Saudi Education Expo?</span>
+            <h2>Ruang informasi pendidikan Saudi untuk masyarakat Indonesia.</h2>
+            <p>Saudi Education Expo adalah agenda kolaboratif PPMI Saudi dan organisasi wilayahnya, diselenggarakan melalui kepanitiaan independen. Event ini berkembang menjadi pameran yang menyediakan informasi valid dan komprehensif bagi masyarakat Indonesia yang berminat melanjutkan studi di Arab Saudi.</p>
+          </article>
+          <article>
+            <span className="section-label">Mengapa event ini ada?</span>
+            <h2>Membantu calon pelajar mengambil langkah yang lebih terarah.</h2>
+            <p>Informasi studi sering tersebar dan sulit dipahami tanpa konteks. Saudi Education Expo mempertemukan publik dengan mahasiswa, alumni, pakar, dan institusi terkait agar proses mencari informasi menjadi lebih jelas dan relevan.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="section-block activity-section" id="aktivitas">
+        <div className="shell">
+          <div className="section-head">
+            <div><span className="section-label">Aktivitas event</span><h2>Belajar, bertanya, dan membangun arah.</h2><p>Setiap format kegiatan dirancang untuk memberi nilai praktis, bukan sekadar menambah rangkaian acara.</p></div>
+          </div>
+          <div className="activity-grid">
+            {activities.map(([icon, title, text], index) => (
+              <article key={title}><span className="activity-number">{String(index + 1).padStart(2, "0")}</span><span className="quick-icon"><Icon name={icon} /></span><h3>{title}</h3><p>{text}</p></article>
             ))}
           </div>
         </div>
-        <div className="shell stat-strip">
-          <div><strong>20+</strong><span>Institusi pendidikan</span></div>
-          <div><strong>30+</strong><span>Pembicara & alumni</span></div>
-          <div><strong>5.000</strong><span>Target peserta</span></div>
-          <div><strong>3 hari</strong><span>Expo & konsultasi</span></div>
+      </section>
+
+      <section className="section-block audience-section">
+        <div className="shell audience-layout">
+          <div>
+            <span className="section-label">Untuk siapa?</span>
+            <h2>Untuk siapa pun yang ingin memahami peluang studi di Saudi.</h2>
+            <p>Informasi disusun agar berguna bagi calon pelajar, pendamping pendidikan, dan masyarakat umum.</p>
+          </div>
+          <div className="audience-list">
+            {audiences.map(([title, text], index) => <article key={title}><span>{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></article>)}
+          </div>
         </div>
       </section>
 
-      {videoOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setVideoOpen(false)}>
-          <div className="video-modal" role="dialog" aria-modal="true" aria-label="Video event sebelumnya" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="icon-button modal-close" onClick={() => setVideoOpen(false)} aria-label="Tutup video"><Icon name="close" /></button>
-            <div className="video-frame">
-              <iframe src="https://www.youtube.com/embed/cnDHi7xlipU?autoplay=1" title="Saudi Education Expo event video" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
-            </div>
-          </div>
+      <section className="section-block outcome-section">
+        <div className="shell outcome-card">
+          <div><span className="section-label">Hasil yang dibawa pulang</span><h2>Pulang dengan gambaran dan langkah berikutnya.</h2></div>
+          <ul>{outcomes.map((item) => <li key={item}><Icon name="check" size={18} />{item}</li>)}</ul>
         </div>
-      )}
+      </section>
     </>
   );
 }

@@ -1,35 +1,22 @@
 import React from "react";
-
-const partners = [
-  ["PPMI Arab Saudi", "Strategic partner"],
-  ["Study in Saudi", "Official portal"],
-  ["Ministry of Education KSA", "Education network"],
-  ["SMESCO Indonesia", "Venue partner"],
-  ["Islamic University of Madinah", "Academic network"],
-  ["King Saud University", "Academic network"],
-  ["Umm Al-Qura University", "Academic network"],
-  ["Alumni Saudi Indonesia", "Community network"],
-];
+import { Icon } from "./Icons";
 
 export function Partners() {
   return (
-    <section className="section-block partner-section">
+    <section className="section-block partner-section" id="dukungan">
       <div className="shell">
-        <div className="section-head compact-head">
+        <div className="section-head">
           <div>
-            <span className="section-label">Jaringan event</span>
-            <h2>Terhubung dengan ekosistem pendidikan Saudi.</h2>
+            <span className="section-label">Dukungan kelembagaan & partner</span>
+            <h2>Disusun melalui kolaborasi komunitas pelajar Saudi.</h2>
+            <p>Saudi Education Expo merupakan agenda kolaboratif PPMI Saudi dan organisasi wilayahnya, dengan pelaksanaan melalui kepanitiaan independen.</p>
           </div>
         </div>
-        <div className="partner-grid">
-          {partners.map(([name, type]) => (
-            <div className="partner-logo" key={name}>
-              <strong>{name}</strong>
-              <small>{type}</small>
-            </div>
-          ))}
+        <div className="support-grid">
+          <article><span className="quick-icon"><Icon name="users" /></span><small>Inisiator kolaborasi</small><h3>PPMI Saudi</h3></article>
+          <article><span className="quick-icon"><Icon name="map" /></span><small>Jaringan kolaborasi</small><h3>Organisasi wilayah PPMI Saudi</h3></article>
+          <article className="is-pending"><span className="quick-icon"><Icon name="university" /></span><small>Partner resmi lainnya</small><h3>Segera diumumkan</h3></article>
         </div>
-        <p className="content-note">Daftar partner dan institusi akan diperbarui setelah konfirmasi resmi penyelenggara.</p>
       </div>
     </section>
   );

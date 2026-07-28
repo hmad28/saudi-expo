@@ -189,7 +189,7 @@ export function AdminDashboard({ onClose, onOpenPass }) {
 
           <select value={gateName} onChange={(e) => setGateName(e.target.value)}>
             <option value="Gate 1 - Main Entrance">Gate 1 - Main Entrance</option>
-            <option value="Gate 2 - VIP & Alumni">Gate 2 - VIP & Alumni</option>
+            <option value="Gate 2">Gate 2</option>
             <option value="Gate 3 - Seminar Hall">Gate 3 - Seminar Hall</option>
           </select>
 
@@ -265,7 +265,7 @@ export function AdminDashboard({ onClose, onOpenPass }) {
                 <div className="kpi-card">
                   <small>TIKET TERJUAL</small>
                   <strong>{totalTicketsSold} Tiket</strong>
-                  <span>Target Kuota 5.000 Tiket</span>
+                  <span>Target kuota belum ditetapkan</span>
                 </div>
                 <div className="kpi-card emerald">
                   <small>TOTAL CHECK-IN GATE</small>

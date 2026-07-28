@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { Icon } from "./Icons";
 
 const questions = [
-  ["Apakah pembelian tiket memerlukan akun?", "Tidak. Kamu dapat membeli tiket sebagai tamu. Data pembeli dan peserta dicatat langsung pada pesanan."],
-  ["Apakah satu tiket berlaku untuk seluruh event?", "Ya. Semua kategori tiket memberikan akses selama tiga hari sesuai benefit yang tertera pada masing-masing tiket."],
-  ["Apakah QR tiket harus dicetak?", "Tidak. Tunjukkan digital pass dari ponsel saat check-in. Kamu tetap dapat mencetak tiket bila diperlukan."],
-  ["Bagaimana jika email tiket tidak masuk?", "Periksa folder spam terlebih dahulu. Gunakan fitur Cek Tiket dengan nomor pesanan dan email pembelian untuk mengirim ulang akses tiket."],
-  ["Apakah anak-anak memerlukan tiket?", "Anak di bawah 6 tahun gratis tanpa alokasi kursi. Usia 6 tahun ke atas memerlukan tiket, dan anak di bawah 12 tahun wajib didampingi orang dewasa."],
-  ["Apakah tiket dapat di-refund?", "Transaksi yang berhasil bersifat final, kecuali event dibatalkan penyelenggara. Koreksi nama peserta dapat diajukan sebelum check-in."],
+  ["Apakah Saudi Education Expo merupakan event baru?", "Tidak. Saudi Expo adalah agenda tahunan. Pada 2025 agenda ini dikenal sebagai Saudi University Expo, kemudian berkembang menjadi Saudi Education Expo pada 2026."],
+  ["Siapa yang menyelenggarakan Saudi Education Expo?", "Saudi Education Expo merupakan agenda kolaboratif PPMI Saudi dan organisasi wilayahnya, diselenggarakan melalui kepanitiaan independen."],
+  ["Kegiatan apa saja yang akan dihadirkan?", "Kategori kegiatan yang telah dikonfirmasi meliputi Seminar Inspiratif, Talkshow Alumni, Workshop Interaktif, Booth Kampus Saudi, serta Bazar dan community experience."],
+  ["Siapa yang dapat mengikuti event ini?", "Event ditujukan untuk pelajar SMA atau sederajat, mahasiswa yang mencari peluang S2 atau S3, guru dan pendidik, serta masyarakat umum yang tertarik studi di Arab Saudi."],
+  ["Kapan agenda, pembicara, dan institusi peserta diumumkan?", "Informasi tersebut akan ditampilkan setelah dikonfirmasi dan diumumkan secara resmi oleh penyelenggara."],
+  ["Kapan informasi tiket tersedia?", "Kategori, harga, benefit, periode penjualan, dan kuota tiket masih menunggu pengumuman resmi penyelenggara."],
 ];
 
 export function Faq() {
@@ -18,9 +18,9 @@ export function Faq() {
       <div className="shell faq-layout">
         <div className="faq-intro">
           <span className="section-label">Pertanyaan umum</span>
-          <h2>Yang perlu kamu tahu sebelum datang.</h2>
-          <p>Belum menemukan jawaban? Hubungi tim SEE26 melalui kanal bantuan resmi.</p>
-          <a className="btn btn-secondary" href="mailto:support@saudiexpo.id">Hubungi Panitia</a>
+          <h2>Informasi yang sudah terkonfirmasi.</h2>
+          <p>Bagian ini hanya memuat jawaban berdasarkan materi resmi yang tersedia.</p>
+          <a className="btn btn-secondary" href="https://instagram.com/saudieduexpo.id" target="_blank" rel="noreferrer">Instagram Resmi</a>
         </div>
         <div className="faq-list">
           {questions.map(([question, answer], index) => (

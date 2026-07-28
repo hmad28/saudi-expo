@@ -1,25 +1,24 @@
 # Saudi Education Expo 2026
 
-Public event hub dan demonstrasi sistem ticketing untuk **Saudi Education Expo 2026 (SEE26)**—event yang mempertemukan pelajar Indonesia dengan universitas, penyedia beasiswa, alumni, dan komunitas mahasiswa di Arab Saudi.
+Public event hub untuk **Saudi Education Expo 2026 (SEE26)**, kelanjutan agenda tahunan yang pada 2025 dikenal sebagai **Saudi University Expo**.
 
-![Saudi Education Expo 2026](public/see26-cinematic-campus.png)
+![Saudi Education Expo 2026](public/see26-cinematic-campus.webp)
 
 ## Pengalaman Produk
 
-Website dirancang sebagai event hub yang modern, ringkas, ramah, dan berorientasi konversi. Halaman dibuka dengan satu pengalaman sinematik yang terukur: kamera bergerak perlahan melewati gerbang kampus menuju informasi event. Setelah itu, antarmuka kembali menjadi halaman event konvensional yang cepat dipindai dan nyaman digunakan dari tautan Instagram atau WhatsApp.
+Website dirancang sebagai event hub yang modern, ringkas, ramah, dan berorientasi informasi. Halaman dibuka dengan visual gateway yang sinematik, sementara judul, deskripsi, tanggal, lokasi, dan CTA tetap statis serta mudah dibaca. Setelah itu, antarmuka kembali menjadi halaman event konvensional yang cepat dipindai.
 
 - Hero langsung menampilkan nama event, tanggal, venue, dan CTA tiket.
-- Cinematic opening berbasis scroll dengan satu scene 2.5D yang koheren.
-- Afternovie dimuat hanya setelah pengguna menekan tombol play.
-- Ringkasan event, quick actions, statistik, agenda, pembicara, dan venue.
-- Ticket cards dengan harga, benefit, kuota, deadline, badge, dan CTA penuh.
-- Guest checkout empat langkah dengan order summary responsif.
-- Digital wallet pass dengan QR asli dan kode tiket.
-- Pencarian tiket, FAQ, kebijakan pembelian, dan sticky CTA mobile.
+- Cinematic opening berbasis scroll desktop dengan satu scene 2.5D yang koheren.
+- Mobile memakai hero normal-flow dengan gerak minimal.
+- Narasi historis dari Saudi University Expo 2025 ke Saudi Education Expo 2026.
+- Deskripsi resmi, alasan event, aktivitas, audiens, dan outcome peserta.
+- Controlled “Segera diumumkan” states untuk agenda, speaker, institusi, tiket, partner, dan dokumentasi yang belum resmi.
+- Venue, FAQ berbasis materi terkonfirmasi, dan sticky CTA mobile.
 - Dukungan `prefers-reduced-motion` dengan hero statis dan konten normal-flow.
-- Dashboard admin tetap compact dan data-focused; tidak menjadi bagian navigasi publik.
+- Tidak ada angka, nama, jadwal, harga, atau klaim partner yang dibuat untuk mengisi kekosongan konten.
 
-> Implementasi transaksi saat ini masih berupa demonstrasi frontend berbasis penyimpanan browser. Payment gateway, webhook, email transaksional, database, autentikasi admin, dan validasi server belum terhubung ke layanan produksi.
+> Penjualan tiket belum dibuka pada UI karena data resmi kategori, harga, benefit, periode, dan kuota belum diberikan. Sistem menampilkan status terkontrol sampai informasi penyelenggara tersedia.
 
 ## Design System
 
@@ -27,15 +26,16 @@ Seluruh UI menggunakan **Plus Jakarta Sans**. Green dipakai sebagai warna aksi d
 
 | Token | Nilai |
 | --- | --- |
-| Background | `#F6F7F5` |
+| Background | `#F5F7F5` |
 | Surface | `#FFFFFF` |
-| Surface soft | `#EEF4EF` |
+| Surface soft | `#EDF5F0` |
 | Primary | `#078B4F` |
-| Primary dark | `#056B3D` |
+| Primary dark | `#075436` |
+| Green 900 | `#063D28` |
 | Primary soft | `#DDF3E6` |
-| Text primary | `#121613` |
-| Text secondary | `#626B65` |
-| Border | `#DEE4DF` |
+| Text primary | `#101713` |
+| Text secondary | `#667069` |
+| Border | `#DCE5DF` |
 | Gold accent | `#F1B93B` |
 
 Konten menggunakan container terpusat dengan lebar maksimum sekitar `1040px`. Cards memakai radius `16–24px`, border tipis, shadow lembut, dan padding yang efisien. Button memiliki tinggi sentuh minimum `48px`.
@@ -44,7 +44,6 @@ Konten menggunakan container terpusat dengan lebar maksimum sekitar `1040px`. Ca
 
 - [React 18](https://react.dev/)
 - [Vite 6](https://vite.dev/)
-- [`qrcode.react`](https://github.com/zpao/qrcode.react)
 - CSS custom properties
 - Browser-native `IntersectionObserver`, `requestAnimationFrame`, dan media queries
 
@@ -80,14 +79,16 @@ npm run preview
 saudi-expo/
 ├── public/
 │   ├── favicon.svg
-│   └── see26-cinematic-campus.png
+│   ├── see26-cinematic-campus.webp
+│   ├── see26-cinematic-campus-mobile.webp
+│   ├── see26-og.jpg
+│   └── ...
 ├── src/
 │   ├── components/
 │   │   ├── CinematicHero.jsx
 │   │   ├── EventOverview.jsx
 │   │   ├── TicketSection.jsx
-│   │   ├── CheckoutModal.jsx
-│   │   ├── TicketPassModal.jsx
+│   │   ├── Documentation.jsx
 │   │   └── ...
 │   ├── utils/
 │   ├── main.jsx
@@ -98,7 +99,7 @@ saudi-expo/
 
 ## Catatan Produksi
 
-Sebelum digunakan untuk penjualan publik, sistem masih membutuhkan:
+Sebelum digunakan untuk penjualan publik, sistem masih membutuhkan data resmi dan integrasi:
 
 - validasi harga dan kuota di backend;
 - reservasi stok dalam transaksi database;
@@ -107,7 +108,7 @@ Sebelum digunakan untuk penjualan publik, sistem masih membutuhkan:
 - pengiriman dan retry email transaksional;
 - autentikasi admin dan role-based access control;
 - rate limiting, audit log, monitoring, serta export data;
-- konten pembicara, partner, harga, dan kebijakan yang sudah dikonfirmasi panitia.
+- konten pembicara, institusi, partner, agenda, tiket, dokumentasi, dan kebijakan yang sudah dikonfirmasi panitia.
 
 ---
 
