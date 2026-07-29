@@ -9,10 +9,32 @@ const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: EVENT.timezo
 
 export function getDatabase() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { orders: [], auditLogs: [] };
+    const database = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { orders: [], auditLogs: [] };
+    const expired = applyOrderExpiry(database);
+    if (expired) localStorage.setItem(STORAGE_KEY, JSON.stringify(database));
+    return database;
   } catch {
     return { orders: [], auditLogs: [] };
   }
+}
+
+function applyOrderExpiry(database) {
+  const now = Date.now();
+  let changed = false;
+  database.orders.forEach((order) => {
+    if (["PENDING_PAYMENT", "PAYMENT_REJECTED"].includes(order.status) && new Date(order.expiresAt).getTime() <= now) {
+      order.status = "EXPIRED";
+      order.paymentStatus = "EXPIRED";
+      order.expiredAt = new Date(now).toISOString();
+      database.auditLogs.unshift({ at: order.expiredAt, action: "ORDER_EXPIRED", entityId: order.id });
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+export function expireStaleOrders() {
+  return getDatabase();
 }
 
 function saveDatabase(database) {
@@ -49,7 +71,7 @@ export function createOrder({ productId, quantity, buyer, attendees, donation = 
     orderNumber: `SEE26/${new Intl.DateTimeFormat("en-CA", { timeZone: EVENT.timezone }).format(now).replaceAll("-", "")}/${randomToken(4).slice(0, 8).toUpperCase()}`,
     publicToken,
     productId,
-    productSnapshot: { name: product.name, date: product.date, unitPrice: product.price, validity: product.date },
+    productSnapshot: { name: product.name, date: product.date, validDates: product.validDates, unitPrice: product.price, validity: product.date },
     quantity,
     buyer: { ...buyer, email: buyer.email.trim().toLowerCase(), phone: normalizePhone(buyer.phone) },
     attendees,
@@ -79,6 +101,7 @@ export function createOrder({ productId, quantity, buyer, attendees, donation = 
 
 export function submitPaymentProof(token, proof) {
   return updateOrder(token, (order, database) => {
+    if (!["PENDING_PAYMENT", "PAYMENT_REJECTED"].includes(order.status) || new Date(order.expiresAt).getTime() <= Date.now()) throw new Error("Waktu pembayaran telah berakhir.");
     order.proof = proof;
     order.status = "PAYMENT_REVIEW";
     order.paymentStatus = "UNDER_REVIEW";
@@ -88,6 +111,7 @@ export function submitPaymentProof(token, proof) {
 
 export function approvePayment(token) {
   return updateOrder(token, (order, database) => {
+    if (order.status !== "PAYMENT_REVIEW") throw new Error("Pembayaran tidak sedang menunggu review.");
     const paidAt = new Date().toISOString();
     order.status = "PAID";
     order.paymentStatus = "SUCCESS";
@@ -108,6 +132,7 @@ export function approvePayment(token) {
 
 export function rejectPayment(token, reason = "Bukti pembayaran perlu diperbaiki.") {
   return updateOrder(token, (order, database) => {
+    if (order.status !== "PAYMENT_REVIEW") throw new Error("Pembayaran tidak sedang menunggu review.");
     order.status = "PAYMENT_REJECTED";
     order.paymentStatus = "REJECTED";
     order.rejectionReason = reason;
@@ -131,14 +156,26 @@ export const getTicketByToken = (token) => {
   return order ? { order, ticket: order.tickets.find((item) => item.accessToken === token) } : null;
 };
 
-export function confirmCheckIn(checkinToken) {
+export function validateCheckInToken(checkinToken) {
   const database = getDatabase();
   const order = database.orders.find((item) => item.tickets.some((ticket) => ticket.checkinToken === checkinToken));
   const ticket = order?.tickets.find((item) => item.checkinToken === checkinToken);
   if (!order || !ticket || ticket.status !== "ACTIVE") return { success: false, message: "Tiket tidak aktif atau tidak ditemukan." };
   const eventDate = todayKey();
-  if (!["2026-07-31", "2026-08-01", "2026-08-02"].includes(eventDate)) return { success: false, message: "Check-in hanya tersedia pada tanggal event." };
-  if (ticket.checkIns.some((item) => item.eventDate === eventDate)) return { success: false, message: "Tiket sudah digunakan hari ini.", ticket };
+  const validDates = order.productSnapshot.validDates || [];
+  if (!validDates.includes(eventDate)) return { success: false, message: "Tiket tidak berlaku pada tanggal ini.", ticket, order };
+  const previous = ticket.checkIns.find((item) => item.eventDate === eventDate);
+  if (previous) return { success: false, message: "Tiket sudah digunakan hari ini.", ticket, order, previous };
+  return { success: true, message: "Tiket valid dan belum digunakan hari ini.", ticket, order, eventDate };
+}
+
+export function confirmCheckIn(checkinToken) {
+  const validation = validateCheckInToken(checkinToken);
+  if (!validation.success) return validation;
+  const database = getDatabase();
+  const order = database.orders.find((item) => item.tickets.some((ticket) => ticket.checkinToken === checkinToken));
+  const ticket = order.tickets.find((item) => item.checkinToken === checkinToken);
+  const eventDate = validation.eventDate;
   ticket.checkIns.push({ eventDate, at: new Date().toISOString(), gate: "Belum dikonfigurasi", operator: "Authorized staff" });
   database.auditLogs.unshift({ at: new Date().toISOString(), action: "TICKET_CHECKED_IN", entityId: ticket.id });
   saveDatabase(database);

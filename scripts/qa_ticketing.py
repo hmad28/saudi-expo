@@ -1,7 +1,10 @@
+import os
 from pathlib import Path
+from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
+BASE = os.environ.get("BASE_URL", "http://127.0.0.1:5173").rstrip("/")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -10,7 +13,7 @@ with sync_playwright() as p:
     errors = []
     page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
 
-    page.goto("http://127.0.0.1:5173/checkout?ticket=regular-d1&qty=1", wait_until="networkidle")
+    page.goto(BASE + "/checkout?ticket=regular-d1&qty=1", wait_until="networkidle")
     page.locator('[name="fullName"]').fill("Hammad Test")
     page.locator('[name="phone"]').fill("081234567890")
     page.locator('[name="email"]').fill("hammad@example.com")
@@ -39,14 +42,16 @@ with sync_playwright() as p:
     assert "49" in page.locator(".pay-amount").inner_text()
     page.get_by_role("link", name="Konfirmasi Pembayaran").click()
     page.wait_for_url("**/confirm")
-    page.locator('input[type="datetime-local"]').fill("2026-07-28T16:30")
+    page.locator('input[type="datetime-local"]').fill(datetime.now().strftime("%Y-%m-%dT%H:%M"))
     page.locator('input[type="file"]').set_input_files(str(ROOT / "public" / "SEE26-logo.png"))
     page.get_by_role("button", name="Kirim Konfirmasi").click()
+    page.locator(".success-message").wait_for()
     assert "berhasil dikirim" in page.locator(".success-message").inner_text()
 
-    page.goto("http://127.0.0.1:5173/admin", wait_until="networkidle")
+    page.goto(BASE + "/admin", wait_until="networkidle")
     page.get_by_role("button", name="Setujui").click()
-    page.get_by_role("button", name="Lihat tiket").click()
+    page.get_by_role("button", name="Lihat semua tiket").click()
+    page.get_by_role("link", name="Lihat tiket 1").click()
     page.wait_for_url("**/ticket/*")
     page.locator(".qr-zone img").wait_for()
     assert page.get_by_role("heading", name="Hammad Test").is_visible()

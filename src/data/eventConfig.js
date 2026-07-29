@@ -6,6 +6,7 @@ export const EVENT = {
   category: "Pameran Pendidikan Arab Saudi",
   timezone: "Asia/Jakarta",
   displayTimezone: "WIB",
+  countdownAt: "2026-07-31T00:00:00+07:00",
   startsAt: "2026-07-31T08:30:00+07:00",
   endsAt: "2026-08-02T18:00:00+07:00",
   datesLabel: "31 Juli–2 Agustus 2026",
@@ -125,15 +126,15 @@ const benefits = (day) => [
   "Campus & Scholarship Expo",
 ];
 export const TICKETS = [
-  { id: "bundle-3d", category: "Bundle 3 Hari", name: "Bundle Regular — 3 Hari", date: EVENT.datesLabel, price: 120000, originalPrice: 150000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: 1, benefits: ["Akses Day 1, Day 2, dan Day 3", "Satu QR peserta", "Paket souvenir eksklusif", "Booth, seminar, dan workshop", "Bertemu mahasiswa perwakilan kampus"], souvenir: true, bundleCheckInMode: "ONE_QR_DAILY_VALIDATION" },
-  { id: "regular-d1", category: "Tiket Harian", name: "Regular — Day 1", date: "Jumat, 31 Juli 2026", price: 49000, unit: "per peserta", status: "AVAILABLE", remaining: null, qrQuantity: 1, benefits: benefits("Day 1"), souvenir: true },
-  { id: "regular-d2", category: "Tiket Harian", name: "Regular — Day 2", date: "Sabtu, 1 Agustus 2026", price: 49000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: 1, benefits: benefits("Day 2"), souvenir: true },
-  { id: "regular-d3", category: "Tiket Harian", name: "Regular — Day 3", date: "Ahad, 2 Agustus 2026", price: 49000, unit: "per peserta", status: "AVAILABLE", remaining: null, qrQuantity: 1, benefits: benefits("Day 3"), souvenir: true },
-  { id: "group-d1", category: "Tiket Rombongan", name: "Rombongan — Day 1", date: "Jumat, 31 Juli 2026", price: 35000, unit: "per peserta", status: "NEEDS_CONFIGURATION", remaining: null, qrQuantity: null, minimumGroupQuantity: null, maximumGroupQuantity: null, groupParticipantDataPolicy: "NEEDS_CONFIRMATION", benefits: benefits("Day 1"), souvenir: true },
-  { id: "group-d2", category: "Tiket Rombongan", name: "Rombongan — Day 2", date: "Sabtu, 1 Agustus 2026", price: 35000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: null, benefits: benefits("Day 2"), souvenir: true },
-  { id: "group-d3", category: "Tiket Rombongan", name: "Rombongan — Day 3", date: "Ahad, 2 Agustus 2026", price: 35000, unit: "per peserta", status: "NEEDS_CONFIGURATION", remaining: null, qrQuantity: null, benefits: benefits("Day 3"), souvenir: true },
-  { id: "couple-d1", category: "Promo Day 1", name: "Couple Promo — Day 1", date: "Jumat, 31 Juli 2026", price: 35000, originalPrice: 49000, unit: "per kebijakan promo", status: "NEEDS_CONFIGURATION", remaining: null, couplePricePolicy: "NEEDS_CONFIRMATION", coupleQrQuantity: null, coupleSouvenirQuantity: null, benefits: ["Promo Day 1", "Mekanik peserta dan benefit menunggu konfirmasi"] },
-  { id: "b2g1-d1", category: "Promo Day 1", name: "Beli 2 Gratis 1 — Day 1", date: "Jumat, 31 Juli 2026", price: 100000, originalPrice: 150000, unit: "per paket", status: "NEEDS_CONFIGURATION", remaining: null, b2g1ParticipantCount: 3, b2g1QrPolicy: "NEEDS_CONFIRMATION", b2g1SouvenirPolicy: "NEEDS_CONFIRMATION", benefits: ["Tiga peserta berdasarkan makna promosi", "Kebijakan QR dan souvenir menunggu konfirmasi"] },
+  { id: "bundle-3d", category: "Bundle 3 Hari", name: "Bundle Regular — 3 Hari", date: EVENT.datesLabel, validDates: ["2026-07-31", "2026-08-01", "2026-08-02"], price: 120000, originalPrice: 150000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: 1, benefits: ["Akses Day 1, Day 2, dan Day 3", "Satu QR peserta", "Paket souvenir eksklusif", "Booth, seminar, dan workshop", "Bertemu mahasiswa perwakilan kampus"], souvenir: true, bundleCheckInMode: "ONE_QR_DAILY_VALIDATION" },
+  { id: "regular-d1", category: "Tiket Harian", name: "Regular — Day 1", date: "Jumat, 31 Juli 2026", validDates: ["2026-07-31"], price: 49000, unit: "per peserta", status: "AVAILABLE", remaining: null, qrQuantity: 1, benefits: benefits("Day 1"), souvenir: true },
+  { id: "regular-d2", category: "Tiket Harian", name: "Regular — Day 2", date: "Sabtu, 1 Agustus 2026", validDates: ["2026-08-01"], price: 49000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: 1, benefits: benefits("Day 2"), souvenir: true },
+  { id: "regular-d3", category: "Tiket Harian", name: "Regular — Day 3", date: "Ahad, 2 Agustus 2026", validDates: ["2026-08-02"], price: 49000, unit: "per peserta", status: "AVAILABLE", remaining: null, qrQuantity: 1, benefits: benefits("Day 3"), souvenir: true },
+  { id: "group-d1", category: "Tiket Rombongan", name: "Rombongan — Day 1", date: "Jumat, 31 Juli 2026", validDates: ["2026-07-31"], price: 35000, unit: "per peserta", status: "NEEDS_CONFIGURATION", remaining: null, qrQuantity: null, minimumGroupQuantity: null, maximumGroupQuantity: null, groupParticipantDataPolicy: "NEEDS_CONFIRMATION", benefits: benefits("Day 1"), souvenir: true },
+  { id: "group-d2", category: "Tiket Rombongan", name: "Rombongan — Day 2", date: "Sabtu, 1 Agustus 2026", validDates: ["2026-08-01"], price: 35000, unit: "per peserta", status: "SOLD_OUT", remaining: 0, qrQuantity: null, benefits: benefits("Day 2"), souvenir: true },
+  { id: "group-d3", category: "Tiket Rombongan", name: "Rombongan — Day 3", date: "Ahad, 2 Agustus 2026", validDates: ["2026-08-02"], price: 35000, unit: "per peserta", status: "NEEDS_CONFIGURATION", remaining: null, qrQuantity: null, benefits: benefits("Day 3"), souvenir: true },
+  { id: "couple-d1", category: "Promo Day 1", name: "Couple Promo — Day 1", date: "Jumat, 31 Juli 2026", validDates: ["2026-07-31"], price: 35000, originalPrice: 49000, unit: "per kebijakan promo", status: "NEEDS_CONFIGURATION", remaining: null, couplePricePolicy: "NEEDS_CONFIRMATION", coupleQrQuantity: null, coupleSouvenirQuantity: null, benefits: ["Promo Day 1", "Mekanik peserta dan benefit menunggu konfirmasi"] },
+  { id: "b2g1-d1", category: "Promo Day 1", name: "Beli 2 Gratis 1 — Day 1", date: "Jumat, 31 Juli 2026", validDates: ["2026-07-31"], price: 100000, originalPrice: 150000, unit: "per paket", status: "NEEDS_CONFIGURATION", remaining: null, b2g1ParticipantCount: 3, b2g1QrPolicy: "NEEDS_CONFIRMATION", b2g1SouvenirPolicy: "NEEDS_CONFIRMATION", benefits: ["Tiga peserta berdasarkan makna promosi", "Kebijakan QR dan souvenir menunggu konfirmasi"] },
 ];
 
 export const CHECKOUT_CONFIG = {

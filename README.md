@@ -76,6 +76,7 @@ Adapter ini memakai `localStorage` untuk mendemonstrasikan lifecycle produk. Ia 
 | `/payment/:secureToken/confirm` | Upload bukti pembayaran manual |
 | `/order/:secureToken` | Secure order status |
 | `/ticket/:secureToken` | Digital ticket |
+| `/check-in/:checkInToken` | Validasi QR untuk sesi petugas |
 | `/kemitraan` | Entry point kolaborasi |
 | `/kemitraan/sponsorship` | Pengajuan sponsorship |
 | `/kemitraan/booth` | Pengajuan booth dan exhibitor |
@@ -86,7 +87,7 @@ Adapter ini memakai `localStorage` untuk mendemonstrasikan lifecycle produk. Ia 
 | `/lembaga/status/:secureToken` | Secure institution status |
 | `/admin` | Development payment review |
 
-Vite hosting perlu dikonfigurasi untuk SPA fallback agar deep link route tetap membuka `index.html`.
+SPA fallback untuk Vercel sudah dikonfigurasi melalui `vercel.json`. Seluruh deep link publik diarahkan ke `index.html`, sementara aset build tetap dilayani langsung oleh platform.
 
 ## Ticket Product Rules
 
@@ -159,6 +160,16 @@ python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
   --server "npm run dev -- --host 127.0.0.1" \
   --port 5173 \
   -- python scripts/qa_ticketing.py
+
+python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
+  --server "npm run dev -- --host 127.0.0.1" \
+  --port 5173 \
+  -- python scripts/qa_navigation.py
+
+python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
+  --server "npm run dev -- --host 127.0.0.1" \
+  --port 5173 \
+  -- python scripts/qa_applications.py
 ```
 
 `qa_public.py` memeriksa 18 public routes dan:
