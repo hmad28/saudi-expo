@@ -3,6 +3,8 @@ import QRCode from "qrcode";
 import { AGE_POLICY, CHECKOUT_CONFIG, EVENT, FAQS, MISSING_ASSETS, SCHEDULE, SPEAKERS, TICKETS } from "./data/eventConfig";
 import { approvePayment, createOrder, formatDateTime, formatRupiah, getDatabase, getOrderByToken, getTicketByToken, rejectPayment, submitPaymentProof } from "./utils/storage";
 import { Icon } from "./components/Icons";
+import { PartnershipLanding, SponsorshipPage, BoothPage, InstitutionLanding, InstitutionFormPage, ApplicationStatusPage } from "./PartnershipPages";
+import { getApplications } from "./utils/applicationStore";
 
 const navigate = (path) => {
   window.history.pushState({}, "", path);
@@ -22,10 +24,10 @@ function useRoute() {
 
 function Logo({ inverse = false }) {
   return (
-    <button className={`logo-lockup ${inverse ? "inverse" : ""}`} onClick={() => navigate("/")} aria-label="Kembali ke beranda">
+    <a className={`logo-lockup ${inverse ? "inverse" : ""}`} href="/" aria-label="Kembali ke beranda">
       <img src={EVENT.logo} alt="" width="52" height="52" />
       <span><strong>Saudi Education Expo</strong><small>31 Jul–2 Agu 2026</small></span>
-    </button>
+    </a>
   );
 }
 
@@ -47,15 +49,15 @@ function Header({ checkout = false }) {
               <span /><span />
             </button>
             <div className={`nav-links ${open ? "open" : ""}`} id="primary-menu">
-              <a href="/#tentang" onClick={() => setOpen(false)}>Tentang</a>
-              <a href="/#pembicara" onClick={() => setOpen(false)}>Pembicara</a>
-              <a href="/#jadwal" onClick={() => setOpen(false)}>Jadwal</a>
-              <a href="/#venue" onClick={() => setOpen(false)}>Lokasi</a>
-              <a href="/#tiket" onClick={() => setOpen(false)} className="button button-small">Beli Tiket</a>
+              <a href="/tentang" onClick={() => setOpen(false)}>Tentang</a>
+              <a href="/pembicara" onClick={() => setOpen(false)}>Pembicara</a>
+              <a href="/jadwal" onClick={() => setOpen(false)}>Jadwal</a>
+              <a href="/kemitraan" onClick={() => setOpen(false)}>Kolaborasi</a>
+              <a href="/tiket" onClick={() => setOpen(false)} className="button button-small">Beli Tiket</a>
             </div>
           </>
         )}
-        {checkout && <button className="text-button" onClick={() => navigate("/#tiket")}><Icon name="arrow" className="icon-back" /> Ubah tiket</button>}
+        {checkout && <a className="text-button" href="/tiket"><Icon name="arrow" className="icon-back" /> Ubah tiket</a>}
       </nav>
     </header>
   );
@@ -87,6 +89,9 @@ function Countdown() {
           </div>
         ) : <a className="button button-cream" href="#dokumentasi">{now <= end ? "Lihat jadwal hari ini" : "Lihat dokumentasi"}</a>}
       </div>
+      <div className="container fact-strip">
+        {EVENT.highlights.map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
+      </div>
     </section>
   );
 }
@@ -110,7 +115,6 @@ function Hero() {
           </div>
         </div>
         <div className="campaign-collage" aria-label="Identitas kampanye Saudi Education Expo 2026">
-          <div className="see-outline" aria-hidden="true">SEE<br />26</div>
           <figure className="official-logo-poster">
             <img src={EVENT.logoGreen} alt="Logo resmi Saudi Education Expo 2026" width="1920" height="1600" fetchpriority="high" />
           </figure>
@@ -122,15 +126,7 @@ function Hero() {
             <span>Dokumentasi event</span>
             <strong>Aset resmi dibutuhkan</strong>
           </div>
-          <div className="ticket-strip">PPMI ARAB SAUDI · MAIN STAGE · MINI STAGE · CAMPUS EXPO</div>
         </div>
-      </div>
-      <div className="container hero-highlights">
-        {EVENT.highlights.map(([value, label, status]) => (
-          <div key={label} title={status === "NEEDS_ORGANIZER_CONFIRMATION" ? "Menunggu konfirmasi organizer" : undefined}>
-            <strong>{value}</strong><span>{label}</span>{status === "NEEDS_ORGANIZER_CONFIRMATION" && <small>† perlu konfirmasi</small>}
-          </div>
-        ))}
       </div>
     </section>
   );
@@ -308,6 +304,20 @@ function TicketSelector() {
   const products = TICKETS.filter((item) => item.category === category);
   const [productId, setProductId] = useState("regular-d1");
   const [quantity, setQuantity] = useState(1);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetRef = useRef(null);
+  const detailTriggerRef = useRef(null);
+  useEffect(()=>{
+    if(!sheetOpen)return;
+    const sheet=sheetRef.current;
+    const focusable=[...sheet.querySelectorAll("button,a[href]")];
+    focusable[0]?.focus();
+    const onKey=(event)=>{
+      if(event.key==="Escape"){setSheetOpen(false);detailTriggerRef.current?.focus()}
+      if(event.key==="Tab"&&focusable.length){const first=focusable[0],last=focusable.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}}
+    };
+    addEventListener("keydown",onKey);return()=>removeEventListener("keydown",onKey);
+  },[sheetOpen]);
   useEffect(() => {
     if (!products.some((item) => item.id === productId)) setProductId(products[0].id);
   }, [category]);
@@ -326,6 +336,7 @@ function TicketSelector() {
               <div className="price"><strong>{formatRupiah(product.price)}</strong>{product.originalPrice && <del>{formatRupiah(product.originalPrice)}</del>}<span>{product.unit}</span></div>
               <ul>{product.benefits.map((benefit) => <li key={benefit}><Icon name="check" />{benefit}</li>)}</ul>
               {purchasable ? <div className="quantity"><span>Jumlah tiket</span><div><button onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Kurangi jumlah">−</button><output aria-live="polite">{quantity}</output><button onClick={() => setQuantity(Math.min(10, quantity + 1))} aria-label="Tambah jumlah">+</button></div></div> : <p className="configuration-note">{product.status === "SOLD_OUT" ? "Produk tidak dapat dipilih karena stok sumber menunjukkan 0." : "Checkout dinonaktifkan sampai mekanik produk dikonfirmasi organizer."}</p>}
+              <button ref={detailTriggerRef} className="text-cta ticket-detail-trigger" onClick={()=>setSheetOpen(true)}>Lihat Detail Tiket <Icon name="arrow"/></button>
             </div>
           </div>
           <aside className="ticket-preview">
@@ -338,6 +349,8 @@ function TicketSelector() {
         </div>
         <AgePolicy />
       </div>
+      <div className="ticket-purchase-bar"><span><strong>{quantity} Tiket</strong><small>{formatRupiah(product.price*quantity)}</small></span><button className="button button-lime" disabled={!purchasable} onClick={()=>navigate(`/checkout?ticket=${product.id}&qty=${quantity}`)}>Lanjut</button></div>
+      {sheetOpen&&<div className="sheet-backdrop" role="presentation" onMouseDown={()=>{setSheetOpen(false);detailTriggerRef.current?.focus()}}><section ref={sheetRef} className="ticket-sheet" role="dialog" aria-modal="true" aria-labelledby="ticket-sheet-title" onMouseDown={e=>e.stopPropagation()}><header><div><span className="eyebrow">Detail tiket</span><h2 id="ticket-sheet-title">{product.name}</h2></div><button className="icon-close" aria-label="Tutup detail tiket" onClick={()=>{setSheetOpen(false);detailTriggerRef.current?.focus()}}><Icon name="close"/></button></header><p>{product.date}</p><ul>{product.benefits.map(x=><li key={x}>{x}</li>)}</ul><dl><div><dt>QR</dt><dd>{product.qrQuantity||"Menunggu konfirmasi"} per peserta</dd></div><div><dt>Souvenir</dt><dd>{product.souvenir?"Termasuk":"Tidak disebutkan"}</dd></div><div><dt>Refund</dt><dd>Sesuai syarat tiket</dd></div></dl><div className="sheet-links"><a href="/jadwal">Jadwal terkait</a><a href="/faq">Kebijakan usia</a></div></section></div>}
     </section>
   );
 }
@@ -372,13 +385,13 @@ function VenueDocumentationPartners() {
   );
 }
 
-function Faq() {
+function Faq({ limit = FAQS.length }) {
   const [open, setOpen] = useState(0);
   return (
     <section className="section faq-section">
       <div className="container faq-layout">
         <SectionIntro label="Pertanyaan umum" title="Sebelum kamu membeli tiket." />
-        <div className="faq-list">{FAQS.map(([question, answer], index) => <article key={question}><button aria-expanded={open === index} aria-controls={`faq-${index}`} onClick={() => setOpen(open === index ? -1 : index)}><span>{question}</span><Icon name={open === index ? "minus" : "plus"} /></button><div id={`faq-${index}`} hidden={open !== index}><p>{answer}</p></div></article>)}</div>
+        <div className="faq-list">{FAQS.slice(0,limit).map(([question, answer], index) => <article key={question}><button aria-expanded={open === index} aria-controls={`faq-${index}`} onClick={() => setOpen(open === index ? -1 : index)}><span>{question}</span><Icon name={open === index ? "minus" : "plus"} /></button><div id={`faq-${index}`} hidden={open !== index}><p>{answer}</p></div></article>)}{limit < FAQS.length && <a className="text-cta faq-more" href="/faq">Baca Semua Pertanyaan <Icon name="arrow"/></a>}</div>
       </div>
     </section>
   );
@@ -388,9 +401,25 @@ function Footer() {
   return (
     <>
       <section className="closing-cta"><div className="container"><span className="poster-tag lime">31 JUL—02 AUG</span><h2>Siapkan langkah studimu ke Arab Saudi.</h2><p>Temukan kampus, informasi beasiswa, dan orang yang bisa menjawab pertanyaanmu.</p><a className="button button-cream" href="#tiket">Beli Tiket</a></div></section>
-      <footer><div className="container footer-grid"><Logo inverse /><nav><a href="#tentang">Tentang</a><a href="#jadwal">Jadwal</a><a href="#tiket">Tiket</a><button onClick={() => navigate("/terms")}>Syarat & Ketentuan</button></nav><div><strong>{EVENT.venue}</strong><span>{EVENT.datesLabel} · WIB</span><a href={EVENT.social.instagram}>Instagram resmi</a></div></div><div className="container footer-bottom"><span>© 2026 PPMI Arab Saudi</span><span>Official campaign hub · SEE 2026</span></div></footer>
+      <footer><div className="container footer-grid"><Logo inverse /><nav><a href="/tentang">Tentang</a><a href="/jadwal">Jadwal</a><a href="/tiket">Tiket</a><a href="/mitra">Mitra</a><a href="/syarat-ketentuan">Syarat & Ketentuan</a><a href="/kebijakan-privasi">Privasi</a></nav><div><strong>{EVENT.venue}</strong><span>{EVENT.datesLabel} · WIB</span><a href={EVENT.social.instagram}>Instagram resmi</a></div></div><div className="container footer-bottom"><span>© 2026 PPMI Arab Saudi</span><span>Official campaign hub · SEE 2026</span></div></footer>
     </>
   );
+}
+
+function HomeTeasers() {
+  const activitiesShort = activities.slice(0, 4);
+  const day = SCHEDULE[0];
+  return <>
+    <section className="section home-intro"><div className="container teaser-split"><SectionIntro label="Kenali Saudi Education Expo" title="Akses studi Saudi, langsung dari ekosistemnya." /><div><p>Temui mahasiswa aktif, alumni, pembicara, dan komunitas yang memahami proses studi di Arab Saudi—dari kampus dan beasiswa sampai kehidupan sehari-hari.</p><a className="text-cta" href="/tentang">Kenali Saudi Education Expo <Icon name="arrow" /></a></div></div></section>
+    <section className="section home-activities"><div className="container"><SectionIntro label="Kegiatan utama" title="Datang untuk bertanya, belajar, dan terhubung." /><div className="home-activity-grid">{activitiesShort.map(([n,title,copy])=><article key={title}><span>{n}</span><h3>{title}</h3><p>{copy}</p></article>)}</div><a className="button button-dark centered" href="/kegiatan">Lihat Semua Kegiatan</a></div></section>
+    <section className="section home-speakers"><div className="container"><SectionIntro label="Pembicara pilihan" title="Belajar dari orang yang menjalani ekosistemnya." /><div className="home-speaker-row">{SPEAKERS.slice(0,6).map((s)=><article key={s.id}><div>{s.name.split(" ").filter(w=>/^[A-Z]/.test(w)).slice(0,2).map(w=>w[0]).join("")}</div><h3>{s.name}</h3></article>)}</div><a className="text-cta" href="/pembicara">Lihat Semua Pembicara <Icon name="arrow" /></a></div></section>
+    <section className="section home-schedule"><div className="container teaser-split"><SectionIntro label="Preview jadwal" title={day.label} /><div className="mini-schedule">{day.sessions.slice(0,5).map(s=><article key={s.time+s.title}><time>{s.time}</time><div><small>{s.stage}</small><strong>{s.title}</strong></div></article>)}<a className="text-cta" href="/jadwal">Lihat Jadwal Lengkap <Icon name="arrow" /></a></div></div></section>
+    <section className="section home-ticket"><div className="container teaser-split"><SectionIntro label="Tiket SEE 2026" title="Pilih hari yang paling relevan untukmu." /><div><p>Regular Day 1 dan Day 3 tersedia. Bundle serta beberapa kategori lain mengikuti status resmi dan konfigurasi panitia.</p><a className="button button-lime" href="/tiket">Lihat dan Pilih Tiket</a></div></div></section>
+    <section className="section home-venue"><div className="container teaser-split"><div className="venue-poster"><span>SMESCO</span><strong>JAKARTA</strong></div><div><SectionIntro label="Lokasi" title="SMESCO Exhibition & Convention Hall" /><p>{EVENT.address}</p><a className="text-cta" href="/lokasi">Lihat Informasi Lokasi <Icon name="arrow" /></a></div></div></section>
+    <section className="section collaboration-teaser"><div className="container"><SectionIntro label="Kolaborasi bersama SEE 2026" title="Hadir sebagai mitra, exhibitor, atau lembaga." /><div className="collaboration-actions"><a href="/kemitraan/sponsorship">Sponsorship & Kemitraan <Icon name="arrow"/></a><a href="/kemitraan/booth">Booth & Exhibitor <Icon name="arrow"/></a><a href="/lembaga">Pendaftaran Lembaga <Icon name="arrow"/></a></div></div></section>
+    <section className="section home-doc"><div className="container teaser-split"><div className="doc-main"><Icon name="play" size={44}/><strong>Aftermovie 2025</strong><span>Aset resmi belum tersedia</span></div><div><SectionIntro label="Dokumentasi" title="Perjalanan yang dimulai pada 2025." /><a className="text-cta" href="/dokumentasi">Lihat Dokumentasi <Icon name="arrow"/></a></div></div></section>
+    <Faq limit={5} />
+  </>;
 }
 
 function Landing() {
@@ -399,11 +428,23 @@ function Landing() {
     <>
       <a className="skip-link" href="#main">Lewati ke konten utama</a>
       <Header />
-      <main id="main"><Hero /><Countdown /><About /><ProblemAndPurpose /><Activities /><AudienceOutcomes /><TrustAndSpeakers /><Schedule /><TicketSelector /><VenueDocumentationPartners /><Faq /><Footer /></main>
+      <main id="main"><Hero /><Countdown /><HomeTeasers /><Footer /></main>
       <div className="mobile-buy"><span><small>Mulai</small><strong>{formatRupiah(availableStartingPrice)}</strong></span><a href="#tiket" className="button button-lime">Beli Tiket</a></div>
     </>
   );
 }
+
+const DetailShell = ({ children, title, label, intro }) => <><Header/><main className="detail-page"><header className="page-masthead"><div className="container"><span className="poster-tag lime">{label}</span><h1>{title}</h1>{intro&&<p>{intro}</p>}</div></header>{children}</main><Footer/></>;
+function AboutPage(){return <DetailShell label="Tentang SEE 2026" title="Mengapa Saudi Education Expo hadir."><About/><ProblemAndPurpose/><TrustAndSpeakers/></DetailShell>}
+function ActivitiesPage(){return <DetailShell label="Program event" title="Lima cara untuk belajar dan terhubung."><Activities/><AudienceOutcomes/></DetailShell>}
+function SchedulePage(){return <DetailShell label="31 Jul—2 Agu 2026" title="Jadwal lengkap dua stage."><Schedule/></DetailShell>}
+function SpeakersPage(){return <DetailShell label="Pembicara & kontributor" title="Belajar langsung dari ekosistem pendidikan Saudi."><TrustAndSpeakers/></DetailShell>}
+function TicketsPage(){return <DetailShell label="Ticket configurator" title="Pilih tiket SEE 2026." intro="Satu produk aktif dalam satu waktu. Status sold-out dan produk yang belum lengkap ditampilkan apa adanya."><TicketSelector/></DetailShell>}
+function LocationPage(){return <DetailShell label="Lokasi event" title="Temui kami di SMESCO Indonesia."><section className="section"><div className="container venue-layout"><div className="venue-poster"><span>SMESCO</span><strong>JAKARTA</strong><small>Foto resmi menunggu organizer</small></div><div><h2>{EVENT.venue}</h2><address>{EVENT.address}</address><p>{EVENT.datesLabel}</p><a className="button button-dark" href={EVENT.mapUrl}>Buka di Google Maps</a></div></div></section></DetailShell>}
+function DocumentationPage(){return <DetailShell label="Saudi Expo 2025—2026" title="Lihat perjalanan Saudi Expo sebelumnya."><section className="section documentation-section"><div className="container documentation-grid"><div className="doc-main"><Icon name="play"/><strong>Aftermovie 2025</strong><span>URL resmi belum tersedia</span></div>{["Seminar","Booth","Audience","Committee"].map(x=><div className="doc-tile" key={x}><span>{x}</span><small>Aset resmi belum tersedia</small></div>)}</div></section></DetailShell>}
+function PartnersPage(){const filters=["Semua","Sponsor Utama","Sponsor","Exhibitor","Media Partner","Event Partner","Community Partner","Education Partner"];const [filter,setFilter]=useState("Semua");return <DetailShell label="Direktori kolaborator" title="Mitra Saudi Education Expo 2026."><section className="section"><div className="container"><div className="filter-pills">{filters.map(x=><button className={filter===x?"active":""} onClick={()=>setFilter(x)} key={x}>{x}</button>)}</div><div className="partner-empty"><strong>Data {filter.toLowerCase()} belum tersedia.</strong><p>Logo dan kategori hanya akan ditampilkan setelah metadata dikonfirmasi organizer.</p></div></div></section></DetailShell>}
+function FaqPage(){return <DetailShell label="Pusat bantuan" title="Pertanyaan & kebijakan event."><Faq/></DetailShell>}
+function PrivacyPage(){return <DetailShell label="Legal" title="Kebijakan Privasi"><section className="section"><div className="container legal-copy"><p>Saudi Education Expo memproses data pembeli, peserta, dan pendaftar hanya untuk pemesanan, komunikasi acara, pembayaran, check-in, serta pelaporan internal yang relevan.</p><h2>Data yang diproses</h2><p>Identitas, kontak, institusi, kategori peserta, data transaksi, persetujuan ketentuan, dan riwayat check-in. Bukti pembayaran hanya dapat diakses petugas berwenang.</p><h2>Hak dan keamanan</h2><p>Implementasi production wajib menetapkan retensi data, kanal permintaan akses/penghapusan, vendor pemroses data, serta kebijakan insiden sebelum menerima data publik.</p></div></section></DetailShell>}
 
 const emptyBuyer = { fullName: "", phone: "", email: "", emailConfirmation: "", ageRange: "", institutionLevel: "", institutionName: "", category: "" };
 const emptyAttendee = () => ({ fullName: "", phone: "", email: "", ageRange: "", birthDate: "", guardianName: "", institutionLevel: "", institutionName: "", category: "", gender: "" });
@@ -429,6 +470,8 @@ function Checkout() {
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [attendeeIndex, setAttendeeIndex] = useState(0);
   const finalDonation = donation === "custom" ? Number(customDonation) || 0 : Number(donation);
   const subtotal = product.price * quantity;
   const updateAttendee = (index, field, value) => setAttendees((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item));
@@ -470,15 +513,19 @@ function Checkout() {
     <>
       <Header checkout />
       <main className="checkout-page">
-        <div className="container checkout-heading"><span className="eyebrow">Step 2 dari 2 · Secure checkout</span><h1>Checkout Tiket</h1><p>Lengkapi data pembeli dan pengunjung sebelum melanjutkan pembayaran.</p></div>
-        <form className="container checkout-layout" onSubmit={submit}>
+        <div className="container checkout-heading"><span className="eyebrow">Langkah {step} dari 4 · Guest checkout</span><h1>{["Data Pembeli","Data Pengunjung","Pembayaran","Konfirmasi"][step-1]}</h1><div className="checkout-progress">{[1,2,3,4].map(n=><span className={step>=n?"active":""} key={n}/>)}</div></div>
+        <form className={`container checkout-layout checkout-step-${step}`} onSubmit={submit}>
           <div className="checkout-form">
+            {step===1&&<>
             <FormSection number="01" title="Data Pembeli" copy="Informasi pembayaran dan seluruh tautan tiket akan dikirim ke email pembeli.">
               <div className="form-grid">{input("Nama lengkap", "fullName", "text", "Masukkan nama lengkap")}{input("Nomor WhatsApp aktif", "phone", "tel", "Contoh: 0812 3456 7890")}{input("Email aktif", "email", "email", "nama@email.com")}{input("Konfirmasi email", "emailConfirmation", "email", "Ulangi email aktif")}{select("Rentang umur", "ageRange", CHECKOUT_CONFIG.ageRanges)}{select("Jenjang institusi / masyarakat umum", "institutionLevel", CHECKOUT_CONFIG.institutionLevels)}{select("Kategori pembeli", "category", CHECKOUT_CONFIG.categories)}{input("Asal sekolah, kampus, lembaga, atau komunitas", "institutionName", "text", "Contoh: SMA Cahaya Sunnah", false)}</div>
             </FormSection>
+            </>}
+            {step===2&&<>
             <FormSection number="02" title="Data Pengunjung" copy="Satu tiket dan satu QR unik akan dibuat untuk setiap pengunjung.">
               <button type="button" className="text-button copy-buyer" onClick={copyBuyer}>Samakan Pengunjung 1 dengan data pembeli</button>
-              {attendees.map((attendee, index) => <fieldset className="attendee" key={index}><legend>Pengunjung {index + 1} dari {quantity}</legend><div className="form-grid">
+              <div className="attendee-status">{attendees.map((a,i)=><button type="button" className={i===attendeeIndex?"active":""} onClick={()=>setAttendeeIndex(i)} key={i}>Pengunjung {i+1}<small>{a.fullName&&a.gender?"Lengkap":"Belum lengkap"}</small></button>)}</div>
+              {attendees.map((attendee, index) => index===attendeeIndex&&<fieldset className="attendee" key={index}><legend>Pengunjung {index + 1} dari {quantity}</legend><div className="form-grid">
                 <label>Nama lengkap<input value={attendee.fullName} onChange={(event) => updateAttendee(index, "fullName", event.target.value)} /></label>
                 <label>WhatsApp aktif <small>Opsional</small><input type="tel" value={attendee.phone} onChange={(event) => updateAttendee(index, "phone", event.target.value)} /></label>
                 <label>Email <small>Opsional</small><input type="email" value={attendee.email} onChange={(event) => updateAttendee(index, "email", event.target.value)} /></label>
@@ -491,6 +538,8 @@ function Checkout() {
                 <label className="span-2">Asal institusi<input value={attendee.institutionName} onChange={(event) => updateAttendee(index, "institutionName", event.target.value)} /></label>
               </div></fieldset>)}
             </FormSection>
+            </>}
+            {step===3&&<>
             <FormSection number="03" title="Voucher dan Donasi" copy="Donasi bersifat opsional dan tidak menjadi bagian dari harga tiket.">
               <div className="voucher-row"><label>Kode voucher, jika ada<input value={voucher} onChange={(event) => { setVoucher(event.target.value.toUpperCase()); setVoucherState(""); }} placeholder="Masukkan kode" /></label><button type="button" className="button button-outline" onClick={() => setVoucherState(voucher ? "Voucher tidak valid" : "Masukkan kode voucher terlebih dahulu")}>Periksa</button></div>
               {voucherState && <p className="field-message">{voucherState}</p>}
@@ -501,18 +550,25 @@ function Checkout() {
               <label className="payment-option active"><input type="radio" checked readOnly /><span><strong>Transfer manual · BSI</strong><small>Verifikasi oleh admin setelah bukti pembayaran dikirim.</small></span></label>
               <label className="payment-option disabled"><input type="radio" disabled /><span><strong>QRIS / Virtual Account</strong><small>Memerlukan payment gateway dan webhook terverifikasi.</small></span></label>
             </FormSection>
-            <label className="terms-check"><input type="checkbox" checked={terms} onChange={(event) => setTerms(event.target.checked)} /><span>Saya telah membaca dan menyetujui <button type="button" onClick={() => navigate("/terms")}>Syarat dan Ketentuan Saudi Education Expo 2026</button>.</span></label>
+            </>}
+            {step===4&&<>
+            <FormSection number="04" title="Tinjau Pesanan" copy={`${quantity} tiket untuk ${attendees.length} pengunjung.`}>
+              <div className="review-list"><p><strong>Pembeli</strong><span>{buyer.fullName||"Belum lengkap"}</span></p><p><strong>Tiket</strong><span>{product.name}</span></p><p><strong>Total</strong><span>{formatRupiah(subtotal+finalDonation)}</span></p></div>
+            </FormSection>
+            <label className="terms-check"><input type="checkbox" checked={terms} onChange={(event) => setTerms(event.target.checked)} /><span>Saya telah membaca dan menyetujui <a href="/syarat-ketentuan" target="_blank">Syarat dan Ketentuan Saudi Education Expo 2026</a>.</span></label>
             {error && <div className="form-error" role="alert">{error}</div>}
             <button className="checkout-mobile-submit" disabled={loading}>
               <span><small>Total sementara</small><strong>{formatRupiah(subtotal + finalDonation)}</strong></span>
               <b>{loading ? "Memproses…" : "Bayar Sekarang"}</b>
             </button>
+            </>}
+            <div className="step-actions">{step>1&&<button type="button" className="button button-outline" onClick={()=>setStep(step-1)}>Kembali</button>}{step<4&&<button type="button" className="button button-dark" onClick={()=>setStep(step+1)}>Lanjut</button>}</div>
           </div>
           <aside className="order-summary">
             <span className="eyebrow">Ringkasan pesanan</span><h2>{product.name}</h2><p>{product.date}</p>
             <dl><div><dt>Harga tiket</dt><dd>{formatRupiah(product.price)} × {quantity}</dd></div><div><dt>Subtotal Tiket</dt><dd>{formatRupiah(subtotal)}</dd></div><div><dt>Donasi</dt><dd>{formatRupiah(finalDonation)}</dd></div><div><dt>Biaya Layanan</dt><dd>{formatRupiah(0)}</dd></div></dl>
             <div className="order-total"><span>Total sementara</span><strong aria-live="polite">{formatRupiah(subtotal + finalDonation)}</strong><small>Kode unik transfer ditentukan saat order dibuat.</small></div>
-            <button className="button button-lime button-full" disabled={loading}>{loading ? "Membuat pesanan…" : "Bayar Sekarang"}</button>
+            <button className="button button-lime button-full" disabled={loading||step<4}>{loading ? "Membuat pesanan…" : step<4?"Selesaikan langkah di sebelah kiri":"Bayar Sekarang"}</button>
             <p className="secure-note"><Icon name="shield" />Harga divalidasi ulang ketika order dibuat.</p>
           </aside>
         </form>
@@ -523,7 +579,7 @@ function Checkout() {
 
 const FormSection = ({ number, title, copy, children }) => <section className="form-section"><header><span>{number}</span><div><h2>{title}</h2><p>{copy}</p></div></header>{children}</section>;
 
-function PaymentPage({ token }) {
+function PaymentPage({ token, confirmOnly = false }) {
   const [order, setOrder] = useState(() => getOrderByToken(token));
   const [now, setNow] = useState(Date.now());
   const [proof, setProof] = useState(null);
@@ -558,7 +614,8 @@ function PaymentPage({ token }) {
           <div className="bank-card"><span>{CHECKOUT_CONFIG.payment.bank}</span><strong>{CHECKOUT_CONFIG.payment.accountNumber}</strong><small>a.n. {CHECKOUT_CONFIG.payment.accountHolder}</small><button className="text-button" onClick={() => navigator.clipboard.writeText(CHECKOUT_CONFIG.payment.accountNumber)}><Icon name="copy" /> Salin rekening</button></div>
           <details open><summary>Mobile Banking</summary><ol><li>Buka aplikasi mobile banking.</li><li>Pilih menu transfer.</li><li>Masukkan nomor rekening tujuan.</li><li>Masukkan nominal termasuk kode unik.</li><li>Periksa nama penerima dan selesaikan transfer.</li><li>Simpan bukti pembayaran.</li></ol></details>
           <details><summary>ATM</summary><ol><li>Pilih menu transfer antarbank.</li><li>Masukkan rekening tujuan.</li><li>Masukkan nominal persis seperti total tagihan.</li><li>Simpan bukti transaksi.</li></ol></details>
-          {order.status === "PENDING_PAYMENT" && <form className="proof-form" onSubmit={submitProof}><h2>Konfirmasi Pembayaran</h2><label>Jumlah nominal pembayaran<input type="number" value={amount} onChange={(event) => setAmount(event.target.value)} /></label><label>Tanggal dan waktu pembayaran<input type="datetime-local" required value={transferredAt} onChange={(event) => setTransferredAt(event.target.value)} /></label><label>Bukti pembayaran<input type="file" accept=".jpg,.jpeg,.png,.pdf" required onChange={(event) => setProof(event.target.files[0])} /></label><button className="button button-dark">Kirim Konfirmasi</button></form>}
+          {order.status === "PENDING_PAYMENT" && !confirmOnly && <a className="button button-dark" href={`/payment/${token}/confirm`}>Konfirmasi Pembayaran</a>}
+          {order.status === "PENDING_PAYMENT" && confirmOnly && <form className="proof-form" onSubmit={submitProof}><h2>Konfirmasi Pembayaran</h2><label>Jumlah nominal pembayaran<input type="number" value={amount} onChange={(event) => setAmount(event.target.value)} /></label><label>Tanggal dan waktu pembayaran<input type="datetime-local" required value={transferredAt} onChange={(event) => setTransferredAt(event.target.value)} /></label><label>Bukti pembayaran<input type="file" accept=".jpg,.jpeg,.png,.pdf" required onChange={(event) => setProof(event.target.files[0])} /></label><button className="button button-dark">Kirim Konfirmasi</button></form>}
           {message && <div className="success-message" role="status">{message}</div>}
           {order.status === "PAID" && <button className="button button-lime" onClick={() => navigate(`/ticket/${order.tickets[0].accessToken}`)}>Lihat Tiket Digital</button>}
         </section>
@@ -616,8 +673,9 @@ function Terms() {
 function AdminPage() {
   const [, render] = useState(0);
   const database = getDatabase();
+  const applications = getApplications();
   useEffect(() => { const handler = () => render((value) => value + 1); addEventListener("see26:database", handler); return () => removeEventListener("see26:database", handler); }, []);
-  return <main className="admin-page"><header><Logo /><div><span>Development operations</span><strong>{database.orders.length} order</strong></div></header><div className="admin-content"><h1>Payment review</h1><p className="admin-warning">Prototype lokal. Autentikasi, database server, storage bukti bayar, email provider, gateway, dan audit identity wajib ditambahkan sebelum produksi.</p>{database.orders.length ? <div className="admin-orders">{database.orders.map((order) => <article key={order.id}><div><span className={`payment-status ${order.paymentStatus.toLowerCase()}`}>{order.paymentStatus}</span><h2>{order.orderNumber}</h2><p>{order.buyer.fullName} · {order.productSnapshot.name} · {formatRupiah(order.total)}</p>{order.proof && <small>Bukti: {order.proof.name} · {order.proof.type}</small>}</div><div>{order.status === "PAYMENT_REVIEW" && <><button className="button button-dark" onClick={() => approvePayment(order.publicToken)}>Setujui</button><button className="button button-outline" onClick={() => rejectPayment(order.publicToken)}>Tolak</button></>}{order.status === "PAID" && <button className="button button-outline" onClick={() => navigate(`/ticket/${order.tickets[0].accessToken}`)}>Lihat tiket</button>}<button className="text-button" onClick={() => navigate(`/payment/${order.publicToken}`)}>Buka order</button></div></article>)}</div> : <div className="empty-state">Belum ada order lokal.</div>}<details className="handoff"><summary>Missing assets & organizer decisions</summary><ul>{[...MISSING_ASSETS, ...EVENT.unresolved].map((item) => <li key={item}>{item}</li>)}</ul></details></div></main>;
+  return <main className="admin-page"><header><Logo /><div><span>Development operations</span><strong>{database.orders.length} order · {applications.length} application</strong></div></header><div className="admin-content"><h1>Payment review</h1><p className="admin-warning">Prototype lokal. Autentikasi, database server, storage bukti bayar, email provider, gateway, dan audit identity wajib ditambahkan sebelum produksi.</p>{database.orders.length ? <div className="admin-orders">{database.orders.map((order) => <article key={order.id}><div><span className={`payment-status ${order.paymentStatus.toLowerCase()}`}>{order.paymentStatus}</span><h2>{order.orderNumber}</h2><p>{order.buyer.fullName} · {order.productSnapshot.name} · {formatRupiah(order.total)}</p>{order.proof && <small>Bukti: {order.proof.name} · {order.proof.type}</small>}</div><div>{order.status === "PAYMENT_REVIEW" && <><button className="button button-dark" onClick={() => approvePayment(order.publicToken)}>Setujui</button><button className="button button-outline" onClick={() => rejectPayment(order.publicToken)}>Tolak</button></>}{order.status === "PAID" && <button className="button button-outline" onClick={() => navigate(`/ticket/${order.tickets[0].accessToken}`)}>Lihat tiket</button>}<button className="text-button" onClick={() => navigate(`/payment/${order.publicToken}`)}>Buka order</button></div></article>)}</div> : <div className="empty-state">Belum ada order lokal.</div>}<h2 className="admin-section-title">Kemitraan & Lembaga</h2>{applications.length?<div className="admin-orders">{applications.map(app=><article key={app.id}><div><span className="payment-status pending">{app.type}</span><h2>{app.number}</h2><p>{app.data.organizationName||app.data.brandName||app.data.institutionName}</p></div><strong>{app.status}</strong></article>)}</div>:<div className="empty-state">Belum ada pengajuan.</div>}<details className="handoff"><summary>Missing assets & organizer decisions</summary><ul>{[...MISSING_ASSETS, ...EVENT.unresolved].map((item) => <li key={item}>{item}</li>)}</ul></details></div></main>;
 }
 
 function NotFound() {
@@ -627,9 +685,29 @@ function NotFound() {
 export default function App() {
   const path = useRoute();
   if (path === "/checkout") return <Checkout />;
+  if (path.startsWith("/payment/") && path.endsWith("/confirm")) return <PaymentPage token={path.split("/")[2]} confirmOnly />;
   if (path.startsWith("/payment/")) return <PaymentPage token={path.split("/")[2]} />;
+  if (path.startsWith("/order/")) return <PaymentPage token={path.split("/")[2]} />;
   if (path.startsWith("/ticket/")) return <TicketPage token={path.split("/")[2]} />;
-  if (path === "/terms") return <Terms />;
+  if (path === "/tentang") return <AboutPage />;
+  if (path === "/kegiatan") return <ActivitiesPage />;
+  if (path === "/jadwal") return <SchedulePage />;
+  if (path === "/pembicara") return <SpeakersPage />;
+  if (path === "/tiket") return <TicketsPage />;
+  if (path === "/mitra") return <PartnersPage />;
+  if (path === "/lokasi") return <LocationPage />;
+  if (path === "/dokumentasi") return <DocumentationPage />;
+  if (path === "/faq") return <FaqPage />;
+  if (path === "/syarat-ketentuan" || path === "/terms") return <Terms />;
+  if (path === "/kebijakan-privasi") return <PrivacyPage />;
+  if (path === "/kemitraan") return <PartnershipLanding />;
+  if (path === "/kemitraan/sponsorship") return <SponsorshipPage />;
+  if (path === "/kemitraan/booth") return <BoothPage />;
+  if (path === "/lembaga") return <InstitutionLanding />;
+  if (path === "/lembaga/daftar/ikhwan") return <InstitutionFormPage group="IKHWAN" />;
+  if (path === "/lembaga/daftar/akhwat") return <InstitutionFormPage group="AKHWAT" />;
+  if (path.startsWith("/kemitraan/status/")) return <ApplicationStatusPage token={path.split("/")[3]} />;
+  if (path.startsWith("/lembaga/status/")) return <ApplicationStatusPage token={path.split("/")[3]} />;
   if (path === "/admin") return <AdminPage />;
   if (path !== "/") return <NotFound />;
   return <Landing />;

@@ -59,11 +59,31 @@ Adapter ini memakai `localStorage` untuk mendemonstrasikan lifecycle produk. Ia 
 
 | Route | Fungsi |
 | --- | --- |
-| `/` | Campaign hub dan ticket selection |
+| `/` | Curated campaign overview |
+| `/tentang` | Latar event, kontinuitas, konteks, dan trust |
+| `/kegiatan` | Program dan outcome pengunjung |
+| `/jadwal` | Jadwal lengkap tiga hari dan dua stage |
+| `/pembicara` | Daftar pembicara terkonfirmasi |
+| `/tiket` | Progressive ticket configurator |
+| `/mitra` | Direktori partner berbasis metadata |
+| `/lokasi` | Venue dan navigasi |
+| `/dokumentasi` | Aftermovie dan galeri resmi |
+| `/faq` | FAQ dan kebijakan event |
+| `/syarat-ketentuan` | Syarat tiket |
+| `/kebijakan-privasi` | Kebijakan privasi |
 | `/checkout?ticket=regular-d1&qty=1` | Guest checkout |
 | `/payment/:secureToken` | Instruksi dan konfirmasi pembayaran |
+| `/payment/:secureToken/confirm` | Upload bukti pembayaran manual |
+| `/order/:secureToken` | Secure order status |
 | `/ticket/:secureToken` | Digital ticket |
-| `/terms` | Syarat dan ketentuan |
+| `/kemitraan` | Entry point kolaborasi |
+| `/kemitraan/sponsorship` | Pengajuan sponsorship |
+| `/kemitraan/booth` | Pengajuan booth dan exhibitor |
+| `/lembaga` | Entry point lembaga |
+| `/lembaga/daftar/ikhwan` | Pengajuan lembaga ikhwan |
+| `/lembaga/daftar/akhwat` | Pengajuan lembaga akhwat |
+| `/kemitraan/status/:secureToken` | Secure partnership status |
+| `/lembaga/status/:secureToken` | Secure institution status |
 | `/admin` | Development payment review |
 
 Vite hosting perlu dikonfigurasi untuk SPA fallback agar deep link route tetap membuka `index.html`.
@@ -141,13 +161,14 @@ python C:\Users\Pongo\.agents\skills\webapp-testing\scripts\with_server.py \
   -- python scripts/qa_ticketing.py
 ```
 
-`qa_public.py` memeriksa:
+`qa_public.py` memeriksa 18 public routes dan:
 
 - 1440×900
 - 1280×720
 - 1024×768
 - 768×1024
 - 390×844
+- 430×932
 - horizontal overflow
 - console errors
 - schedule tabs dan stage filter

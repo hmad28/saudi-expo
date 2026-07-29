@@ -19,6 +19,7 @@ with sync_playwright() as p:
     page.locator('[name="institutionLevel"]').select_option(label="Universitas (Pendidikan Tinggi) / Setaraf")
     page.locator('[name="category"]').select_option(label="Mahasiswa")
     page.locator('[name="institutionName"]').fill("Universitas Uji")
+    page.locator(".step-actions").get_by_role("button", name="Lanjut").click()
 
     attendee = page.locator(".attendee")
     attendee.locator("input").nth(0).fill("Hammad Test")
@@ -29,11 +30,15 @@ with sync_playwright() as p:
     attendee.locator("select").nth(2).select_option(label="Universitas (Pendidikan Tinggi) / Setaraf")
     attendee.locator("select").nth(3).select_option(label="Mahasiswa")
     attendee.locator("input").nth(3).fill("Universitas Uji")
+    page.locator(".step-actions").get_by_role("button", name="Lanjut").click()
+    page.locator(".step-actions").get_by_role("button", name="Lanjut").click()
     page.locator(".terms-check input").check()
     page.locator(".order-summary button").click()
     page.wait_for_url("**/payment/*")
 
     assert "49" in page.locator(".pay-amount").inner_text()
+    page.get_by_role("link", name="Konfirmasi Pembayaran").click()
+    page.wait_for_url("**/confirm")
     page.locator('input[type="datetime-local"]').fill("2026-07-28T16:30")
     page.locator('input[type="file"]').set_input_files(str(ROOT / "public" / "SEE26-logo.png"))
     page.get_by_role("button", name="Kirim Konfirmasi").click()
