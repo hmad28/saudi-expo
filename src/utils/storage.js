@@ -1,11 +1,12 @@
 import { CHECKOUT_CONFIG, EVENT, TICKETS } from "../data/eventConfig";
+import { getEventDateKey, getTicketAvailability } from "./eventTime";
 
 const STORAGE_KEY = "SEE26_TICKETING_DEMO_V3";
 const randomToken = (bytes = 18) => {
   const data = crypto.getRandomValues(new Uint8Array(bytes));
   return Array.from(data, (value) => value.toString(36).padStart(2, "0")).join("");
 };
-const todayKey = () => new Intl.DateTimeFormat("en-CA", { timeZone: EVENT.timezone }).format(new Date());
+const todayKey = () => getEventDateKey();
 
 export function getDatabase() {
   try {
@@ -52,7 +53,7 @@ export const formatDateTime = (value) => new Intl.DateTimeFormat("id-ID", {
 
 export function createOrder({ productId, quantity, buyer, attendees, donation = 0, voucherCode = "", paymentMethod = "MANUAL_TRANSFER" }) {
   const product = TICKETS.find((item) => item.id === productId);
-  if (!product || product.status !== "AVAILABLE") throw new Error("Tiket ini belum dapat dibeli.");
+  if (!product || getTicketAvailability(product) !== "AVAILABLE") throw new Error("Tiket ini sudah tidak dapat dibeli pada waktu ini.");
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw new Error("Jumlah tiket tidak valid.");
   if (attendees.length !== quantity) throw new Error("Lengkapi data setiap pengunjung.");
   const subtotal = product.price * quantity;

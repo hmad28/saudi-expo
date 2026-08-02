@@ -5,6 +5,7 @@ export const EVENT = {
   organizer: "PPMI Arab Saudi",
   category: "Pameran Pendidikan Arab Saudi",
   timezone: "Asia/Jakarta",
+  utcOffset: "+07:00",
   displayTimezone: "WIB",
   countdownAt: "2026-07-31T00:00:00+07:00",
   startsAt: "2026-07-31T08:30:00+07:00",

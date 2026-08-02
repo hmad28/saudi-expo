@@ -5,6 +5,16 @@ import { Icon } from "./components/Icons";
 import { PartnershipLanding, SponsorshipPage, BoothPage, InstitutionLanding, InstitutionFormPage, ApplicationStatusPage } from "./PartnershipPages";
 import { getApplications, updateApplicationStatus } from "./utils/applicationStore";
 import { openPrivateFile, storePrivateFile } from "./utils/fileStore";
+import { getEventDateKey, getEventPhase, getPurchasableTickets, getRelevantScheduleDay, getScheduleHref, getSessionState, getTicketAvailability, getTicketStatusCopy } from "./utils/eventTime";
+
+function useNow(refreshMs = 60000) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), refreshMs);
+    return () => clearInterval(timer);
+  }, [refreshMs]);
+  return now;
+}
 
 const navigate = (path) => {
   const next = new URL(path, window.location.origin);
@@ -19,9 +29,9 @@ const navigate = (path) => {
 };
 
 function useRoute() {
-  const [path, setPath] = useState(window.location.pathname);
+  const [route, setRoute] = useState(() => ({ path: window.location.pathname, href: window.location.href }));
   useEffect(() => {
-    const handler = () => setPath(window.location.pathname);
+    const handler = () => setRoute({ path: window.location.pathname, href: window.location.href });
     const interceptInternalNavigation = (event) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target.closest("a[href]");
@@ -38,7 +48,7 @@ function useRoute() {
       document.removeEventListener("click", interceptInternalNavigation);
     };
   }, []);
-  return path;
+  return route.path;
 }
 
 function Logo({ inverse = false }) {
@@ -52,6 +62,9 @@ function Logo({ inverse = false }) {
 
 function Header({ checkout = false }) {
   const [open, setOpen] = useState(false);
+  const now = useNow();
+  const hasTickets = getPurchasableTickets(now).length > 0;
+  const eventEnded = getEventPhase(now) === "ENDED";
   const currentPath = window.location.pathname;
   useEffect(() => {
     if (!open) return;
@@ -73,7 +86,7 @@ function Header({ checkout = false }) {
               <a href="/pembicara" aria-current={currentPath === "/pembicara" ? "page" : undefined} onClick={() => setOpen(false)}>Pembicara</a>
               <a href="/jadwal" aria-current={currentPath === "/jadwal" ? "page" : undefined} onClick={() => setOpen(false)}>Jadwal</a>
               <a href="/kemitraan" aria-current={currentPath.startsWith("/kemitraan") || currentPath.startsWith("/lembaga") ? "page" : undefined} onClick={() => setOpen(false)}>Kolaborasi</a>
-              <a href="/tiket" aria-current={currentPath === "/tiket" ? "page" : undefined} onClick={() => setOpen(false)} className="button button-small">Beli Tiket</a>
+              <a href={hasTickets ? "/tiket" : eventEnded ? "/dokumentasi" : getScheduleHref(now)} aria-current={currentPath === "/tiket" ? "page" : undefined} onClick={() => setOpen(false)} className="button button-small">{hasTickets ? "Beli Tiket" : eventEnded ? "Dokumentasi" : "Jadwal Hari Ini"}</a>
             </div>
           </>
         )}
@@ -92,6 +105,7 @@ function Countdown() {
   const start = new Date(EVENT.countdownAt).getTime();
   const gateOpen = new Date(EVENT.startsAt).getTime();
   const end = new Date(EVENT.endsAt).getTime();
+  const scheduleHref = getScheduleHref(new Date(now));
   const diff = Math.max(0, start - now);
   const values = [
     [Math.floor(diff / 86400000), "Hari"],
@@ -108,7 +122,7 @@ function Countdown() {
           <div className="countdown-numbers" aria-live="off">
             {values.map(([value, label]) => <div key={label}><strong>{String(value).padStart(2, "0")}</strong><span>{label}</span></div>)}
           </div>
-        ) : <a className="button button-cream" href={now <= end ? "/jadwal" : "/dokumentasi"}>{now <= end ? "Lihat jadwal hari ini" : "Lihat dokumentasi"}</a>}
+        ) : <a className="button button-cream" href={now <= end ? scheduleHref : "/dokumentasi"}>{now <= end ? "Lihat jadwal hari ini" : "Lihat dokumentasi"}</a>}
       </div>
       <div className="container fact-strip">
         {EVENT.highlights.filter(([, , status]) => status !== "NEEDS_ORGANIZER_CONFIRMATION").map(([value, label]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
@@ -118,6 +132,9 @@ function Countdown() {
 }
 
 function Hero() {
+  const now = useNow();
+  const purchasableTickets = getPurchasableTickets(now);
+  const phase = getEventPhase(now);
   return (
     <section className="campaign-hero">
       <div className="hero-noise" aria-hidden="true" />
@@ -131,8 +148,8 @@ function Hero() {
             <span><Icon name="pin" />{EVENT.venueShort}</span>
           </div>
           <div className="hero-actions">
-            <a className="button button-lime" href="/tiket">Beli Tiket <Icon name="arrow" /></a>
-            <a className="button button-outline-light" href="/jadwal">Lihat Jadwal</a>
+            <a className="button button-lime" href={purchasableTickets.length ? "/tiket" : phase === "ENDED" ? "/dokumentasi" : getScheduleHref(now)}>{purchasableTickets.length ? "Beli Tiket" : phase === "ENDED" ? "Lihat Dokumentasi" : "Lihat Jadwal Hari Ini"} <Icon name="arrow" /></a>
+            <a className="button button-outline-light" href={getScheduleHref(now)}>Lihat Jadwal</a>
           </div>
         </div>
         <div className="campaign-collage" aria-label="Identitas kampanye Saudi Education Expo 2026">
@@ -287,9 +304,17 @@ function TrustAndSpeakers({ showTrust = true, showSpeakers = true, initialAll = 
 }
 
 function Schedule() {
-  const params = new URLSearchParams(location.search);
-  const [day, setDay] = useState(params.get("day") ? `day-${params.get("day")}` : "day-1");
+  const routeSearch = location.search;
+  const params = new URLSearchParams(routeSearch);
+  const now = useNow(30000);
+  const requestedDay = params.get("day") ? `day-${params.get("day")}` : "";
+  const [day, setDay] = useState(() => SCHEDULE.some((item) => item.id === requestedDay) ? requestedDay : getRelevantScheduleDay().id);
   const [stage, setStage] = useState(params.get("stage") === "main" ? "Main Stage" : params.get("stage") === "mini" ? "Mini Stage" : "Semua");
+  useEffect(() => {
+    const queryDay = new URLSearchParams(routeSearch).get("day");
+    const nextDay = queryDay ? `day-${queryDay}` : "";
+    if (SCHEDULE.some((item) => item.id === nextDay)) setDay(nextDay);
+  }, [routeSearch]);
   const dayData = SCHEDULE.find((item) => item.id === day);
   const sessions = dayData.sessions.filter((item) => stage === "Semua" || item.stage === stage);
   const selectDay = (next) => {
@@ -326,7 +351,7 @@ function Schedule() {
         </div>
         <aside className="all-day-banner"><span>Sepanjang hari</span><strong>Campus & Scholarship Expo</strong><small>Jam operasional final sedang dikonfirmasi oleh panitia.</small></aside>
         <div className="schedule-list" id="schedule-panel" role="tabpanel" aria-live="polite">
-          {sessions.map((item, index) => <article key={`${item.time}-${item.title}`}><time>{item.time}</time><div><span className="stage-label">{item.stage}</span>{item.category && <span className="akhwat-label">{item.category}</span>}<h3>{item.title}</h3></div><span className="schedule-index">{String(index + 1).padStart(2, "0")}</span></article>)}
+          {sessions.map((item, index) => { const sessionState = getSessionState(dayData, item, now); return <article className={`session-${sessionState.toLowerCase()}`} key={`${item.time}-${item.title}`}><time>{item.time}</time><div><span className="stage-label">{item.stage}</span>{sessionState === "LIVE" && <span className="live-label">Sedang berlangsung</span>}{item.category && <span className="akhwat-label">{item.category}</span>}<h3>{item.title}</h3></div><span className="schedule-index">{String(index + 1).padStart(2, "0")}</span></article>; })}
         </div>
       </div>
     </section>
@@ -334,10 +359,11 @@ function Schedule() {
 }
 
 function TicketSelector() {
+  const now = useNow(30000);
   const categories = [...new Set(TICKETS.map((item) => item.category))];
   const [category, setCategory] = useState("Tiket Harian");
   const products = TICKETS.filter((item) => item.category === category);
-  const [productId, setProductId] = useState("regular-d1");
+  const [productId, setProductId] = useState(() => getPurchasableTickets()[0]?.id || "regular-d1");
   const [quantity, setQuantity] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const sheetRef = useRef(null);
@@ -359,7 +385,9 @@ function TicketSelector() {
     if (!products.some((item) => item.id === productId)) setProductId(products[0].id);
   }, [category]);
   const product = TICKETS.find((item) => item.id === productId);
-  const purchasable = product.status === "AVAILABLE";
+  const availability = getTicketAvailability(product, now);
+  const statusCopy = getTicketStatusCopy(availability);
+  const purchasable = availability === "AVAILABLE";
   return (
     <section className="section ticket-section" id="tiket">
       <div className="container">
@@ -369,10 +397,10 @@ function TicketSelector() {
             <div className="ticket-categories">{categories.map((item) => <button key={item} aria-pressed={item === category} className={item === category ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>)}</div>
             <label className="select-label">Pilih produk<select name="ticketProduct" value={productId} onChange={(event) => setProductId(event.target.value)}>{products.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
             <div className="selected-product">
-              <div className="product-title"><span className={`status ${product.status.toLowerCase()}`}>{product.status === "AVAILABLE" ? "Tersedia" : product.status === "SOLD_OUT" ? "Tiket habis" : "Konfigurasi belum lengkap"}</span><h3>{product.name}</h3><p>{product.date}</p></div>
+              <div className="product-title"><span className={`status ${availability.toLowerCase()}`}>{statusCopy.label}</span><h3>{product.name}</h3><p>{product.date}</p></div>
               <div className="price"><strong>{formatRupiah(product.price)}</strong>{product.originalPrice && <del>{formatRupiah(product.originalPrice)}</del>}<span>{product.unit}</span></div>
               <ul>{product.benefits.map((benefit) => <li key={benefit}><Icon name="check" />{benefit}</li>)}</ul>
-              {purchasable ? <div className="quantity"><span>Jumlah tiket</span><div><button disabled={quantity === 1} onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Kurangi jumlah">−</button><output aria-live="polite">{quantity}</output><button disabled={quantity === 10} onClick={() => setQuantity(Math.min(10, quantity + 1))} aria-label="Tambah jumlah">+</button></div></div> : <p className="configuration-note">{product.status === "SOLD_OUT" ? "Produk tidak dapat dipilih karena stok sumber menunjukkan 0." : "Checkout dinonaktifkan sampai mekanik produk dikonfirmasi organizer."}</p>}
+              {purchasable ? <div className="quantity"><span>Jumlah tiket</span><div><button disabled={quantity === 1} onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Kurangi jumlah">−</button><output aria-live="polite">{quantity}</output><button disabled={quantity === 10} onClick={() => setQuantity(Math.min(10, quantity + 1))} aria-label="Tambah jumlah">+</button></div></div> : <p className="configuration-note">{statusCopy.message}</p>}
               <button ref={detailTriggerRef} className="text-cta ticket-detail-trigger" onClick={()=>setSheetOpen(true)}>Lihat Detail Tiket <Icon name="arrow"/></button>
             </div>
           </div>
@@ -381,7 +409,7 @@ function TicketSelector() {
             <div className="pass-body"><small>SAUDI EDUCATION EXPO 2026</small><strong>Nama Pengunjung</strong><span>{product.name}</span><div><span>{product.date}</span><span>{EVENT.venueShort}</span></div></div>
             <div className="fake-qr" aria-label="Pratinjau posisi QR"><span>SEE<br />26</span></div>
             <div className="summary-total"><span>Total</span><strong aria-live="polite">{formatRupiah(product.price * quantity)}</strong></div>
-            <button className="button button-lime button-full" disabled={!purchasable} onClick={() => navigate(`/checkout?ticket=${product.id}&qty=${quantity}`)}>{purchasable ? "Lanjut ke Checkout" : product.status === "SOLD_OUT" ? "Tiket Habis" : "Menunggu Konfirmasi"}</button>
+            <button className="button button-lime button-full" disabled={!purchasable} onClick={() => navigate(`/checkout?ticket=${product.id}&qty=${quantity}`)}>{purchasable ? "Lanjut ke Checkout" : statusCopy.label}</button>
           </aside>
         </div>
         <AgePolicy />
@@ -435,23 +463,31 @@ function Faq({ limit = FAQS.length }) {
 }
 
 function Footer() {
+  const now = useNow();
+  const purchasable = getPurchasableTickets(now).length > 0;
+  const eventEnded = getEventPhase(now) === "ENDED";
   return (
     <>
-      <section className="closing-cta"><div className="container"><span className="poster-tag lime">31 JUL—02 AGU</span><h2>Siapkan langkah studimu ke Arab Saudi.</h2><p>Temukan kampus, informasi beasiswa, dan orang yang bisa menjawab pertanyaanmu.</p><a className="button button-cream" href="/tiket">Beli Tiket</a></div></section>
+      <section className="closing-cta"><div className="container"><span className="poster-tag lime">31 JUL—02 AGU</span><h2>{eventEnded ? "Terima kasih telah menjadi bagian dari SEE 2026." : "Siapkan langkah studimu ke Arab Saudi."}</h2><p>{eventEnded ? "Lihat kembali perjalanan Saudi Education Expo melalui dokumentasi resmi kami." : "Temukan kampus, informasi beasiswa, dan orang yang bisa menjawab pertanyaanmu."}</p><a className="button button-cream" href={purchasable ? "/tiket" : eventEnded ? "/dokumentasi" : getScheduleHref(now)}>{purchasable ? "Beli Tiket" : eventEnded ? "Lihat Dokumentasi" : "Lihat Jadwal Hari Ini"}</a></div></section>
       <footer><div className="container footer-grid"><Logo inverse /><nav><a href="/tentang">Tentang</a><a href="/jadwal">Jadwal</a><a href="/tiket">Tiket</a><a href="/mitra">Mitra</a><a href="/syarat-ketentuan">Syarat & Ketentuan</a><a href="/kebijakan-privasi">Privasi</a></nav><div><strong>{EVENT.venue}</strong><span>{EVENT.datesLabel} · WIB</span><a href={EVENT.social.instagram} target="_blank" rel="noreferrer">Instagram resmi</a></div></div><div className="container footer-bottom"><span>© 2026 PPMI Arab Saudi</span><span>Platform resmi acara · SEE 2026</span></div></footer>
     </>
   );
 }
 
 function HomeTeasers() {
+  const now = useNow();
   const activitiesShort = activities.slice(0, 4);
-  const day = SCHEDULE[0];
+  const day = getRelevantScheduleDay(now);
+  const purchasableTickets = getPurchasableTickets(now);
+  const eventEnded = getEventPhase(now) === "ENDED";
+  const activePreviewSessions = day.sessions.filter((sessionItem) => getSessionState(day, sessionItem, now) !== "ENDED");
+  const previewSessions = (activePreviewSessions.length ? activePreviewSessions : day.sessions.slice(-5)).slice(0, 5);
   return <>
     <section className="section home-intro"><div className="container teaser-split"><SectionIntro label="Kenali Saudi Education Expo" title="Akses studi Saudi, langsung dari ekosistemnya." /><div><p>Temui mahasiswa aktif, alumni, pembicara, dan komunitas yang memahami proses studi di Arab Saudi—dari kampus dan beasiswa sampai kehidupan sehari-hari.</p><a className="text-cta" href="/tentang">Kenali Saudi Education Expo <Icon name="arrow" /></a></div></div></section>
     <section className="section home-activities"><div className="container"><SectionIntro label="Kegiatan utama" title="Datang untuk bertanya, belajar, dan terhubung." /><div className="home-activity-grid">{activitiesShort.map(([n,title,copy])=><article key={title}><span>{n}</span><h3>{title}</h3><p>{copy}</p></article>)}</div><a className="button button-dark centered" href="/kegiatan">Lihat Semua Kegiatan</a></div></section>
     <section className="section home-speakers"><div className="container"><SectionIntro label="Pembicara pilihan" title="Belajar dari orang yang menjalani ekosistemnya." /><div className="home-speaker-row">{SPEAKERS.slice(0,6).map((s)=><article key={s.id}><div>{s.name.split(" ").filter(w=>/^[A-Z]/.test(w)).slice(0,2).map(w=>w[0]).join("")}</div><h3>{s.name}</h3></article>)}</div><a className="text-cta" href="/pembicara">Lihat Semua Pembicara <Icon name="arrow" /></a></div></section>
-    <section className="section home-schedule"><div className="container teaser-split"><SectionIntro label="Preview jadwal" title={day.label} /><div className="mini-schedule">{day.sessions.slice(0,5).map(s=><article key={s.time+s.title}><time>{s.time}</time><div><small>{s.stage}</small><strong>{s.title}</strong></div></article>)}<a className="text-cta" href="/jadwal">Lihat Jadwal Lengkap <Icon name="arrow" /></a></div></div></section>
-    <section className="section home-ticket"><div className="container teaser-split"><SectionIntro label="Tiket SEE 2026" title="Pilih hari yang paling relevan untukmu." /><div><p>Regular Day 1 dan Day 3 tersedia. Bundle serta beberapa kategori lain mengikuti status resmi dan konfigurasi panitia.</p><a className="button button-lime" href="/tiket">Lihat dan Pilih Tiket</a></div></div></section>
+    <section className="section home-schedule"><div className="container teaser-split"><SectionIntro label={day.date === getEventDateKey(now) ? "Jadwal hari ini" : "Preview jadwal"} title={day.label} /><div className="mini-schedule">{previewSessions.map(s=><article key={s.time+s.title}><time>{s.time}</time><div><small>{getSessionState(day, s, now) === "LIVE" ? "Sedang berlangsung" : s.stage}</small><strong>{s.title}</strong></div></article>)}<a className="text-cta" href={getScheduleHref(now)}>Lihat Jadwal Lengkap <Icon name="arrow" /></a></div></div></section>
+    <section className="section home-ticket"><div className="container teaser-split"><SectionIntro label="Tiket SEE 2026" title={eventEnded ? "Penjualan tiket telah berakhir." : purchasableTickets.length ? "Pilih tiket yang masih berlaku." : "Tidak ada tiket yang tersedia saat ini."} /><div><p>{eventEnded ? "Event telah selesai. Dokumentasi akan ditampilkan setelah aset resmi tersedia." : purchasableTickets.length ? `${purchasableTickets.length} produk tiket masih dapat dibeli sesuai tanggal berlakunya.` : "Produk yang tanggalnya telah berlalu otomatis ditutup dari checkout."}</p><a className="button button-lime" href={eventEnded ? "/dokumentasi" : purchasableTickets.length ? "/tiket" : getScheduleHref(now)}>{eventEnded ? "Lihat Dokumentasi" : purchasableTickets.length ? "Lihat dan Pilih Tiket" : "Lihat Jadwal Hari Ini"}</a></div></div></section>
     <section className="section home-venue"><div className="container teaser-split"><div className="venue-poster"><span>SMESCO</span><strong>JAKARTA</strong></div><div><SectionIntro label="Lokasi" title="SMESCO Exhibition & Convention Hall" /><p>{EVENT.address}</p><a className="text-cta" href="/lokasi">Lihat Informasi Lokasi <Icon name="arrow" /></a></div></div></section>
     <section className="section collaboration-teaser"><div className="container"><SectionIntro label="Kolaborasi bersama SEE 2026" title="Hadir sebagai mitra, exhibitor, atau lembaga." /><div className="collaboration-actions"><a href="/kemitraan/sponsorship">Sponsorship & Kemitraan <Icon name="arrow"/></a><a href="/kemitraan/booth">Booth & Exhibitor <Icon name="arrow"/></a><a href="/lembaga">Pendaftaran Lembaga <Icon name="arrow"/></a></div></div></section>
     <section className="section home-doc"><div className="container teaser-split"><div className="doc-main"><Icon name="play" size={44}/><strong>Aftermovie 2025</strong><span>Aset resmi belum tersedia</span></div><div><SectionIntro label="Dokumentasi" title="Perjalanan yang dimulai pada 2025." /><a className="text-cta" href="/dokumentasi">Lihat Dokumentasi <Icon name="arrow"/></a></div></div></section>
@@ -460,13 +496,15 @@ function HomeTeasers() {
 }
 
 function Landing() {
-  const availableStartingPrice = Math.min(...TICKETS.filter((item) => item.status === "AVAILABLE").map((item) => item.price));
+  const now = useNow();
+  const purchasableTickets = getPurchasableTickets(now);
+  const availableStartingPrice = purchasableTickets.length ? Math.min(...purchasableTickets.map((item) => item.price)) : null;
   return (
     <>
       <a className="skip-link" href="#main">Lewati ke konten utama</a>
       <Header />
       <main id="main"><Hero /><Countdown /><HomeTeasers /><Footer /></main>
-      <div className="mobile-buy"><span><small>Mulai</small><strong>{formatRupiah(availableStartingPrice)}</strong></span><a href="/tiket" className="button button-lime">Beli Tiket</a></div>
+      <div className="mobile-buy"><span><small>{availableStartingPrice ? "Mulai" : getEventPhase(now) === "ENDED" ? "Event selesai" : "Hari ini"}</small><strong>{availableStartingPrice ? formatRupiah(availableStartingPrice) : getRelevantScheduleDay(now).short}</strong></span><a href={availableStartingPrice ? "/tiket" : getEventPhase(now) === "ENDED" ? "/dokumentasi" : getScheduleHref(now)} className="button button-lime">{availableStartingPrice ? "Beli Tiket" : getEventPhase(now) === "ENDED" ? "Dokumentasi" : "Lihat Jadwal"}</a></div>
     </>
   );
 }
@@ -476,7 +514,7 @@ function AboutPage(){return <DetailShell label="Tentang SEE 2026" title="Mengapa
 function ActivitiesPage(){return <DetailShell label="Program event" title="Lima cara untuk belajar dan terhubung."><Activities/><AudienceOutcomes/></DetailShell>}
 function SchedulePage(){return <DetailShell label="31 Jul—2 Agu 2026" title="Jadwal lengkap dua stage."><Schedule/></DetailShell>}
 function SpeakersPage(){return <DetailShell label="Pembicara & kontributor" title="Belajar langsung dari ekosistem pendidikan Saudi."><TrustAndSpeakers showTrust={false} initialAll showToggle={false}/></DetailShell>}
-function TicketsPage(){return <DetailShell label="Pilih tiket" title="Pilih tiket SEE 2026." intro="Satu produk aktif dalam satu waktu. Status habis dan produk yang belum lengkap ditampilkan apa adanya."><TicketSelector/></DetailShell>}
+function TicketsPage(){const now=useNow();const hasTickets=getPurchasableTickets(now).length>0;return <DetailShell label="Pilih tiket" title={hasTickets?"Pilih tiket SEE 2026.":getEventPhase(now)==="ENDED"?"Penjualan tiket telah berakhir.":"Tidak ada tiket yang tersedia saat ini."} intro="Status tiket otomatis mengikuti stok, konfigurasi, dan tanggal berlaku dalam waktu Jakarta."><TicketSelector/></DetailShell>}
 function LocationPage(){return <DetailShell label="Lokasi event" title="Temui kami di SMESCO Indonesia."><section className="section"><div className="container venue-layout"><div className="venue-poster"><span>SMESCO</span><strong>JAKARTA</strong><small>Foto resmi menunggu organizer</small></div><div><h2>{EVENT.venue}</h2><address>{EVENT.address}</address><p>{EVENT.datesLabel}</p><a className="button button-dark" href={EVENT.mapUrl}>Buka di Google Maps</a></div></div></section></DetailShell>}
 function DocumentationPage(){return <DetailShell label="Saudi Expo 2025—2026" title="Lihat perjalanan Saudi Expo sebelumnya."><section className="section documentation-section"><div className="container documentation-grid"><div className="doc-main"><Icon name="play"/><strong>Aftermovie 2025</strong><span>URL resmi belum tersedia</span></div>{["Seminar","Booth","Audience","Committee"].map(x=><div className="doc-tile" key={x}><span>{x}</span><small>Aset resmi belum tersedia</small></div>)}</div></section></DetailShell>}
 function PartnersPage(){const filters=["Semua","Sponsor Utama","Sponsor","Exhibitor","Media Partner","Event Partner","Community Partner","Education Partner"];const [filter,setFilter]=useState("Semua");return <DetailShell label="Direktori kolaborator" title="Mitra Saudi Education Expo 2026."><section className="section"><div className="container"><div className="filter-pills">{filters.map(x=><button className={filter===x?"active":""} onClick={()=>setFilter(x)} key={x}>{x}</button>)}</div><div className="partner-empty"><strong>Data {filter.toLowerCase()} belum tersedia.</strong><p>Logo dan kategori hanya akan ditampilkan setelah metadata dikonfirmasi organizer.</p></div></div></section></DetailShell>}
@@ -496,8 +534,11 @@ const ageOnEventDate = (birthDate) => {
   return age;
 };
 function Checkout() {
+  const now = useNow(30000);
   const query = new URLSearchParams(location.search);
-  const product = TICKETS.find((item) => item.id === query.get("ticket")) || TICKETS.find((item) => item.status === "AVAILABLE");
+  const product = TICKETS.find((item) => item.id === query.get("ticket")) || getPurchasableTickets(now)[0] || TICKETS[0];
+  const availability = getTicketAvailability(product, now);
+  const statusCopy = getTicketStatusCopy(availability);
   const quantity = Math.min(10, Math.max(1, Number(query.get("qty")) || 1));
   const draftKey = `${CHECKOUT_DRAFT_PREFIX}:${product.id}:${quantity}`;
   const [draft] = useState(() => {
@@ -587,7 +628,7 @@ function Checkout() {
   const autocomplete = { fullName: "name", phone: "tel", email: "email", emailConfirmation: "email", institutionName: "organization" };
   const input = (label, field, type = "text", placeholder = "", required = true) => <label>{label}<input name={field} type={type} autoComplete={autocomplete[field] || "off"} spellCheck={type === "email" ? "false" : undefined} value={buyer[field]} placeholder={placeholder} required={required} onChange={(event) => setBuyer({ ...buyer, [field]: event.target.value })} /></label>;
   const select = (label, field, options) => <label>{label}<select name={field} value={buyer[field]} required onChange={(event) => setBuyer({ ...buyer, [field]: event.target.value })}><option value="">Pilih opsi</option>{options.map((item) => <option key={item}>{item}</option>)}</select></label>;
-  if (product.status !== "AVAILABLE") return <><Header checkout /><main className="not-found"><img src={EVENT.logo} alt="" width="90" height="90" /><span>—</span><h1>Tiket ini belum dapat dibeli.</h1><p>{product.status === "SOLD_OUT" ? "Tiket sudah habis." : "Mekanik tiket masih dikonfirmasi oleh panitia."}</p><a className="button button-dark" href="/tiket">Pilih tiket lain</a></main></>;
+  if (availability !== "AVAILABLE") return <><Header checkout /><main className="not-found"><img src={EVENT.logo} alt="" width="90" height="90" /><span>—</span><h1>Tiket ini belum dapat dibeli.</h1><p>{statusCopy.message}</p><a className="button button-dark" href={getPurchasableTickets(now).length ? "/tiket" : getEventPhase(now) === "ENDED" ? "/dokumentasi" : getScheduleHref(now)}>{getPurchasableTickets(now).length ? "Pilih tiket lain" : getEventPhase(now) === "ENDED" ? "Lihat dokumentasi" : "Lihat jadwal hari ini"}</a></main></>;
   return (
     <>
       <Header checkout />
