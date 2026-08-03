@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AGE_POLICY, CHECKOUT_CONFIG, EVENT, FAQS, MISSING_ASSETS, SCHEDULE, SPEAKERS, TICKETS } from "./data/eventConfig";
-import { approvePayment, confirmCheckIn, createOrder, expireStaleOrders, formatDateTime, formatRupiah, getDatabase, getOrderByToken, getTicketByToken, rejectPayment, submitPaymentProof, validateCheckInToken } from "./utils/storage";
+import { AGE_POLICY, CHECKOUT_CONFIG, EVENT, FAQS, SCHEDULE, SPEAKERS, TICKETS } from "./data/eventConfig";
+import { confirmCheckIn, createOrder, formatDateTime, formatRupiah, getOrderByToken, getProducts, getTicketByToken, submitPaymentProof, validateCheckInToken } from "./utils/storage";
 import { Icon } from "./components/Icons";
 import { PartnershipLanding, SponsorshipPage, BoothPage, InstitutionLanding, InstitutionFormPage, ApplicationStatusPage } from "./PartnershipPages";
-import { getApplications, updateApplicationStatus } from "./utils/applicationStore";
-import { openPrivateFile, storePrivateFile } from "./utils/fileStore";
 import { getEventDateKey, getEventPhase, getPurchasableTickets, getRelevantScheduleDay, getScheduleHref, getSessionState, getTicketAvailability, getTicketStatusCopy } from "./utils/eventTime";
+import AdminDashboard from "./AdminDashboard";
 
 function useNow(refreshMs = 60000) {
   const [now, setNow] = useState(() => new Date());
@@ -62,6 +61,7 @@ function Logo({ inverse = false }) {
 
 function Header({ checkout = false }) {
   const [open, setOpen] = useState(false);
+  const [mobile, setMobile] = useState(() => matchMedia("(max-width: 760px)").matches);
   const now = useNow();
   const hasTickets = getPurchasableTickets(now).length > 0;
   const eventEnded = getEventPhase(now) === "ENDED";
@@ -72,6 +72,7 @@ function Header({ checkout = false }) {
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [open]);
+  useEffect(() => { const media=matchMedia("(max-width: 760px)");const update=()=>setMobile(media.matches);media.addEventListener("change",update);return()=>media.removeEventListener("change",update); }, []);
   return (
     <header className={`topbar ${checkout ? "checkout-topbar" : ""}`}>
       <nav className="container nav" aria-label="Navigasi utama">
@@ -81,7 +82,7 @@ function Header({ checkout = false }) {
             <button className="menu-toggle" aria-expanded={open} aria-controls="primary-menu" onClick={() => setOpen(!open)} aria-label={open ? "Tutup menu" : "Buka menu"}>
               <span /><span />
             </button>
-            <div className={`nav-links ${open ? "open" : ""}`} id="primary-menu">
+            <div className={`nav-links ${open ? "open" : ""}`} id="primary-menu" inert={mobile && !open ? "" : undefined} aria-hidden={mobile && !open ? "true" : undefined}>
               <a href="/tentang" aria-current={currentPath === "/tentang" ? "page" : undefined} onClick={() => setOpen(false)}>Tentang</a>
               <a href="/pembicara" aria-current={currentPath === "/pembicara" ? "page" : undefined} onClick={() => setOpen(false)}>Pembicara</a>
               <a href="/jadwal" aria-current={currentPath === "/jadwal" ? "page" : undefined} onClick={() => setOpen(false)}>Jadwal</a>
@@ -350,7 +351,7 @@ function Schedule() {
           </div>
         </div>
         <aside className="all-day-banner"><span>Sepanjang hari</span><strong>Campus & Scholarship Expo</strong><small>Jam operasional final sedang dikonfirmasi oleh panitia.</small></aside>
-        <div className="schedule-list" id="schedule-panel" role="tabpanel" aria-live="polite">
+        <div className="schedule-list" id="schedule-panel" role="tabpanel" aria-labelledby={`schedule-tab-${SCHEDULE.findIndex((item)=>item.id===day)}`} aria-live="polite">
           {sessions.map((item, index) => { const sessionState = getSessionState(dayData, item, now); return <article className={`session-${sessionState.toLowerCase()}`} key={`${item.time}-${item.title}`}><time>{item.time}</time><div><span className="stage-label">{item.stage}</span>{sessionState === "LIVE" && <span className="live-label">Sedang berlangsung</span>}{item.category && <span className="akhwat-label">{item.category}</span>}<h3>{item.title}</h3></div><span className="schedule-index">{String(index + 1).padStart(2, "0")}</span></article>; })}
         </div>
       </div>
@@ -360,9 +361,11 @@ function Schedule() {
 
 function TicketSelector() {
   const now = useNow(30000);
-  const categories = [...new Set(TICKETS.map((item) => item.category))];
+  const [catalog, setCatalog] = useState(TICKETS);
+  useEffect(() => { let active=true; getProducts().then(rows=>active&&rows.length&&setCatalog(rows)).catch(()=>undefined); return()=>{active=false}; }, []);
+  const categories = [...new Set(catalog.map((item) => item.category))];
   const [category, setCategory] = useState("Tiket Harian");
-  const products = TICKETS.filter((item) => item.category === category);
+  const products = catalog.filter((item) => item.category === category);
   const [productId, setProductId] = useState(() => getPurchasableTickets()[0]?.id || "regular-d1");
   const [quantity, setQuantity] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -384,7 +387,7 @@ function TicketSelector() {
   useEffect(() => {
     if (!products.some((item) => item.id === productId)) setProductId(products[0].id);
   }, [category]);
-  const product = TICKETS.find((item) => item.id === productId);
+  const product = catalog.find((item) => item.id === productId) || products[0];
   const availability = getTicketAvailability(product, now);
   const statusCopy = getTicketStatusCopy(availability);
   const purchasable = availability === "AVAILABLE";
@@ -409,12 +412,12 @@ function TicketSelector() {
             <div className="pass-body"><small>SAUDI EDUCATION EXPO 2026</small><strong>Nama Pengunjung</strong><span>{product.name}</span><div><span>{product.date}</span><span>{EVENT.venueShort}</span></div></div>
             <div className="fake-qr" aria-label="Pratinjau posisi QR"><span>SEE<br />26</span></div>
             <div className="summary-total"><span>Total</span><strong aria-live="polite">{formatRupiah(product.price * quantity)}</strong></div>
-            <button className="button button-lime button-full" disabled={!purchasable} onClick={() => navigate(`/checkout?ticket=${product.id}&qty=${quantity}`)}>{purchasable ? "Lanjut ke Checkout" : statusCopy.label}</button>
+            {purchasable ? <a className="button button-lime button-full" href={`/checkout?ticket=${product.id}&qty=${quantity}`}>Lanjut ke Checkout</a> : <button className="button button-lime button-full" disabled>{statusCopy.label}</button>}
           </aside>
         </div>
         <AgePolicy />
       </div>
-      <div className="ticket-purchase-bar"><span><strong>{quantity} Tiket</strong><small>{formatRupiah(product.price*quantity)}</small></span><button className="button button-lime" disabled={!purchasable} onClick={()=>navigate(`/checkout?ticket=${product.id}&qty=${quantity}`)}>Lanjut</button></div>
+      <div className="ticket-purchase-bar"><span><strong>{quantity} Tiket</strong><small>{formatRupiah(product.price*quantity)}</small></span>{purchasable ? <a className="button button-lime" href={`/checkout?ticket=${product.id}&qty=${quantity}`}>Lanjut</a> : <button className="button button-lime" disabled>{statusCopy.label}</button>}</div>
       {sheetOpen&&<div className="sheet-backdrop" role="presentation" onMouseDown={()=>{setSheetOpen(false);detailTriggerRef.current?.focus()}}><section ref={sheetRef} className="ticket-sheet" role="dialog" aria-modal="true" aria-labelledby="ticket-sheet-title" onMouseDown={e=>e.stopPropagation()}><header><div><span className="eyebrow">Detail tiket</span><h2 id="ticket-sheet-title">{product.name}</h2></div><button className="icon-close" aria-label="Tutup detail tiket" onClick={()=>{setSheetOpen(false);detailTriggerRef.current?.focus()}}><Icon name="close"/></button></header><p>{product.date}</p><ul>{product.benefits.map(x=><li key={x}>{x}</li>)}</ul><dl><div><dt>QR</dt><dd>{product.qrQuantity||"Menunggu konfirmasi"} per peserta</dd></div><div><dt>Souvenir</dt><dd>{product.souvenir?"Termasuk":"Tidak disebutkan"}</dd></div><div><dt>Refund</dt><dd>Sesuai syarat tiket</dd></div></dl><div className="sheet-links"><a href="/jadwal">Jadwal terkait</a><a href="/faq">Kebijakan usia</a></div></section></div>}
     </section>
   );
@@ -509,7 +512,7 @@ function Landing() {
   );
 }
 
-const DetailShell = ({ children, title, label, intro }) => <><Header/><main className="detail-page"><header className="page-masthead"><div className="container"><span className="poster-tag lime">{label}</span><h1>{title}</h1>{intro&&<p>{intro}</p>}</div></header>{children}</main><Footer/></>;
+const DetailShell = ({ children, title, label, intro }) => <><a className="skip-link" href="#main">Lewati ke konten utama</a><Header/><main className="detail-page" id="main"><header className="page-masthead"><div className="container"><span className="poster-tag lime">{label}</span><h1>{title}</h1>{intro&&<p>{intro}</p>}</div></header>{children}</main><Footer/></>;
 function AboutPage(){return <DetailShell label="Tentang SEE 2026" title="Mengapa Saudi Education Expo hadir."><About/><ProblemAndPurpose/><TrustAndSpeakers showSpeakers={false}/></DetailShell>}
 function ActivitiesPage(){return <DetailShell label="Program event" title="Lima cara untuk belajar dan terhubung."><Activities/><AudienceOutcomes/></DetailShell>}
 function SchedulePage(){return <DetailShell label="31 Jul—2 Agu 2026" title="Jadwal lengkap dua stage."><Schedule/></DetailShell>}
@@ -536,7 +539,9 @@ const ageOnEventDate = (birthDate) => {
 function Checkout() {
   const now = useNow(30000);
   const query = new URLSearchParams(location.search);
-  const product = TICKETS.find((item) => item.id === query.get("ticket")) || getPurchasableTickets(now)[0] || TICKETS[0];
+  const requestedProduct = query.get("ticket");
+  const [product, setProduct] = useState(() => TICKETS.find((item) => item.id === requestedProduct) || getPurchasableTickets(now)[0] || TICKETS[0]);
+  useEffect(() => { let active=true; getProducts().then(rows=>{if(active){const next=rows.find(item=>item.id===requestedProduct)||rows.find(item=>getTicketAvailability(item,now)==="AVAILABLE");if(next)setProduct(next)}}).catch(()=>undefined);return()=>{active=false};},[requestedProduct]);
   const availability = getTicketAvailability(product, now);
   const statusCopy = getTicketStatusCopy(availability);
   const quantity = Math.min(10, Math.max(1, Number(query.get("qty")) || 1));
@@ -607,7 +612,7 @@ function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const validate = () => validateBuyer() || validateAttendees() || (!terms ? "Setujui Syarat dan Ketentuan sebelum melanjutkan." : "");
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     if (step < 4) {
       nextStep();
@@ -617,7 +622,7 @@ function Checkout() {
     if (validationError) return showError(validationError);
     setLoading(true);
     try {
-      const order = createOrder({ productId: product.id, quantity, buyer, attendees, donation: finalDonation, voucherCode: voucher, paymentMethod: "MANUAL_TRANSFER" });
+      const order = await createOrder({ productId: product.id, quantity, buyer, attendees, donation: finalDonation, voucherCode: voucher });
       sessionStorage.removeItem(draftKey);
       navigate(`/payment/${order.publicToken}`);
     } catch (submitError) {
@@ -700,21 +705,26 @@ function Checkout() {
 const FormSection = ({ number, title, copy, children }) => <section className="form-section"><header><span>{number}</span><div><h2>{title}</h2><p>{copy}</p></div></header>{children}</section>;
 
 function PaymentPage({ token, confirmOnly = false }) {
-  const [order, setOrder] = useState(() => getOrderByToken(token));
+  const [order, setOrder] = useState(undefined);
   const [now, setNow] = useState(Date.now());
   const [proof, setProof] = useState(null);
-  const [amount, setAmount] = useState(order?.total || "");
+  const [amount, setAmount] = useState("");
   const [transferredAt, setTransferredAt] = useState("");
   const [message, setMessage] = useState("");
   const [proofSubmitting, setProofSubmitting] = useState(false);
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(Date.now());
-      expireStaleOrders();
-      setOrder(getOrderByToken(token));
-    }, 1000);
-    return () => clearInterval(timer);
+    let active = true;
+    const load = () => getOrderByToken(token).then((nextOrder) => {
+      if (!active) return;
+      setOrder(nextOrder);
+      setAmount((current) => current || String(nextOrder.total));
+    }).catch(() => active && setOrder(null));
+    load();
+    const poll = setInterval(load, 10000);
+    const clockTimer = setInterval(() => setNow(Date.now()), 1000);
+    return () => { active = false; clearInterval(poll); clearInterval(clockTimer); };
   }, [token]);
+  if (order === undefined) return <main className="not-found"><span>•••</span><h1>Memuat pesanan…</h1></main>;
   if (!order) return <NotFound />;
   const remaining = Math.max(0, new Date(order.expiresAt).getTime() - now);
   const clock = [Math.floor(remaining / 3600000), Math.floor((remaining / 60000) % 60), Math.floor((remaining / 1000) % 60)].map((v) => String(v).padStart(2, "0")).join(":");
@@ -729,9 +739,8 @@ function PaymentPage({ token, confirmOnly = false }) {
     if (transferTime > Date.now() + 5 * 60000) return setMessage("Waktu transfer tidak boleh berada di masa depan.");
     setProofSubmitting(true);
     try {
-      const attachment = await storePrivateFile(proof, `PAYMENT_PROOF:${order.id}`);
-      const updated = submitPaymentProof(token, { ...attachment, claimedAmount: Number(amount), transferredAt });
-      setOrder({ ...updated });
+      const updated = await submitPaymentProof(token, { file: proof, claimedAmount: Number(amount), transferredAt });
+      setOrder(updated);
       setMessage("Konfirmasi pembayaran berhasil dikirim. Panitia akan memeriksa pembayaranmu.");
     } catch (submitError) {
       setMessage(submitError.message || "Bukti pembayaran belum dapat disimpan. Coba lagi.");
@@ -781,14 +790,33 @@ function QrImage({ value }) {
   const [src, setSrc] = useState("");
   useEffect(() => {
     let active = true;
-    import("qrcode").then(({ default: QRCode }) => QRCode.toDataURL(value, { width: 320, margin: 3, color: { dark: "#032F22", light: "#FFFFFF" } })).then((result) => active && setSrc(result));
+    const create = async () => {
+      const { default: QRCode } = await import("qrcode");
+      const canvas = document.createElement("canvas");
+      await QRCode.toCanvas(canvas, value, { width: 1024, margin: 4, errorCorrectionLevel: "H", color: { dark: "#032F22", light: "#FFFFFF" } });
+      const context = canvas.getContext("2d");
+      const logo = new Image();
+      logo.src = EVENT.logo;
+      await logo.decode();
+      const size = 190;
+      const x = (canvas.width - size) / 2;
+      context.fillStyle = "#fff";
+      context.beginPath();
+      context.roundRect(x - 18, x - 18, size + 36, size + 36, 34);
+      context.fill();
+      context.drawImage(logo, x, x, size, size);
+      return canvas.toDataURL("image/png");
+    };
+    create().then((result) => active && setSrc(result));
     return () => { active = false; };
   }, [value]);
   return src ? <img src={src} alt="QR tiket untuk check-in" width="256" height="256" /> : <div className="qr-loading">Membuat QR…</div>;
 }
 
 function TicketPage({ token }) {
-  const result = getTicketByToken(token);
+  const [result, setResult] = useState(undefined);
+  useEffect(() => { let active=true; getTicketByToken(token).then(data=>active&&setResult(data)).catch(()=>active&&setResult(null)); return()=>{active=false}; }, [token]);
+  if (result === undefined) return <main className="not-found"><span>•••</span><h1>Memuat tiket…</h1></main>;
   if (!result) return <NotFound />;
   const { order, ticket } = result;
   const attendance = (order.productSnapshot.validDates || []).map((date) => {
@@ -823,19 +851,21 @@ function TicketPage({ token }) {
 }
 
 function CheckInPage({ token }) {
-  const [result, setResult] = useState(() => validateCheckInToken(token));
-  const staffMode = sessionStorage.getItem("SEE26_STAFF_DEMO") === "true";
-  const performCheckIn = () => setResult(confirmCheckIn(token));
+  const [result, setResult] = useState(undefined);
+  const [error, setError] = useState("");
+  useEffect(() => { let active=true; validateCheckInToken(token).then(data=>active&&setResult(data)).catch(loadError=>{if(active){setError(loadError.status===401?"Masuk sebagai petugas sebelum memvalidasi tiket.":loadError.message);setResult(null);}}); return()=>{active=false}; }, [token]);
+  const performCheckIn = async () => { try { setResult(await confirmCheckIn(token)); } catch (checkinError) { setError(checkinError.message); } };
+  if (result === undefined && !error) return <main className="ops-loading">Memvalidasi tiket…</main>;
+  if (!result) return <main className="checkin-page"><div className="checkin-card"><Logo/><h1>{error}</h1><a className="button button-dark" href={`/admin?next=${encodeURIComponent(location.pathname)}`}>Masuk sebagai petugas</a></div></main>;
   const ticket = result.ticket;
   return <main className="checkin-page">
     <div className="checkin-card">
       <Logo />
       <span className={`payment-status ${result.success ? "success" : "pending"}`}>{result.success ? "Tiket valid" : "Perlu perhatian"}</span>
       <h1>{result.message}</h1>
-      {ticket && <div className="checkin-person"><span>Pengunjung</span><strong>{ticket.attendee.fullName}</strong><small>{result.order.productSnapshot.name}</small>{result.previous && <small>Check-in sebelumnya: {formatDateTime(result.previous.at)}</small>}</div>}
-      {!staffMode && <div className="admin-warning">Konfirmasi check-in hanya tersedia setelah petugas mengaktifkan sesi scanner dari dashboard internal pada perangkat ini.</div>}
-      {staffMode && result.success && <button className="button button-lime button-full" onClick={performCheckIn}>Konfirmasi Check-in</button>}
-      <a className="text-cta" href={staffMode ? "/admin" : "/admin"}>{staffMode ? "Kembali ke dashboard" : "Masuk sebagai petugas"} <Icon name="arrow" /></a>
+      {ticket && <div className="checkin-person"><span>Pengunjung</span><strong>{ticket.attendee.fullName}</strong><small>{ticket.order.productSnapshot.name}</small>{result.previous && <small>Check-in sebelumnya: {formatDateTime(result.previous.createdAt || result.previous.at)}</small>}</div>}
+      {result.success && <button className="button button-lime button-full" onClick={performCheckIn}>Konfirmasi Check-in</button>}
+      <a className="text-cta" href="/admin">Kembali ke dashboard <Icon name="arrow" /></a>
     </div>
   </main>;
 }
@@ -851,43 +881,6 @@ function Terms() {
     ["Ketentuan Usia", AGE_POLICY],
   ];
   return <><Header checkout /><main className="legal-page container"><span className="eyebrow">Versi {CHECKOUT_CONFIG.termsVersion}</span><h1>Syarat dan Ketentuan Tiket<br />Saudi Education Expo 2026</h1><p>Dengan membeli dan/atau menggunakan tiket, pengunjung dianggap telah membaca, memahami, dan menyetujui ketentuan berikut.</p>{sections.map(([title, items], index) => <section key={title}><span>{String(index + 1).padStart(2, "0")}</span><div><h2>{title}</h2><ol>{items.map((item) => <li key={item}>{item}</li>)}</ol></div></section>)}</main></>;
-}
-
-function AdminPage() {
-  const [, render] = useState(0);
-  const [staffMode, setStaffMode] = useState(() => sessionStorage.getItem("SEE26_STAFF_DEMO") === "true");
-  const [rejectingToken, setRejectingToken] = useState("");
-  const [rejectionReason, setRejectionReason] = useState("Nominal tidak sesuai");
-  const database = getDatabase();
-  const applications = getApplications();
-  useEffect(() => {
-    const handler = () => render((value) => value + 1);
-    addEventListener("see26:database", handler);
-    addEventListener("see26:applications", handler);
-    return () => {
-      removeEventListener("see26:database", handler);
-      removeEventListener("see26:applications", handler);
-    };
-  }, []);
-  const enableStaff = () => {
-    sessionStorage.setItem("SEE26_STAFF_DEMO", "true");
-    setStaffMode(true);
-  };
-  return <main className="admin-page">
-    <header><Logo /><div><span>Operasional pengembangan</span><strong>{database.orders.length} pesanan · {applications.length} pengajuan</strong></div></header>
-    <div className="admin-content">
-      <h1>Review pembayaran</h1>
-      <p className="admin-warning">Mode demonstrasi lokal. Autentikasi, database server, penyimpanan privat, email, gateway, dan identitas audit tetap wajib sebelum penjualan publik.</p>
-      <div className="admin-toolbar"><button className={`button ${staffMode ? "button-outline" : "button-dark"}`} onClick={enableStaff} disabled={staffMode}>{staffMode ? "Mode petugas aktif di perangkat ini" : "Aktifkan mode petugas demo"}</button></div>
-      {database.orders.length ? <div className="admin-orders">{database.orders.map((order) => <article key={order.id}>
-        <div><span className={`payment-status ${order.paymentStatus.toLowerCase()}`}>{order.paymentStatus.replaceAll("_", " ")}</span><h2>{order.orderNumber}</h2><p>{order.buyer.fullName} · {order.productSnapshot.name} · {formatRupiah(order.total)}</p>{order.proof && <button className="text-button" onClick={() => openPrivateFile(order.proof.id)}>Buka bukti · {order.proof.name}</button>}</div>
-        <div>{order.status === "PAYMENT_REVIEW" && rejectingToken !== order.publicToken && <><button className="button button-dark" onClick={() => approvePayment(order.publicToken)}>Setujui</button><button className="button button-outline" onClick={() => setRejectingToken(order.publicToken)}>Tolak</button></>}{rejectingToken === order.publicToken && <div className="admin-reject"><label>Alasan penolakan<select value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)}><option>Nominal tidak sesuai</option><option>Bukti pembayaran tidak terbaca</option><option>Pembayaran tidak ditemukan</option><option>Rekening tujuan tidak sesuai</option><option>Bukti pembayaran duplikat</option><option>Pembayaran melewati batas waktu</option></select></label><button className="button button-dark" onClick={() => { rejectPayment(order.publicToken, rejectionReason); setRejectingToken(""); }}>Konfirmasi penolakan</button><button className="text-button" onClick={() => setRejectingToken("")}>Batal</button></div>}{order.status === "PAID" && <button className="button button-outline" onClick={() => navigate(`/order/${order.publicToken}`)}>Lihat semua tiket</button>}<button className="text-button" onClick={() => navigate(`/payment/${order.publicToken}`)}>Buka pesanan</button></div>
-      </article>)}</div> : <div className="empty-state">Belum ada pesanan lokal.</div>}
-      <h2 className="admin-section-title">Kemitraan & Lembaga</h2>
-      {applications.length ? <div className="admin-orders">{applications.map((application) => <article key={application.id}><div><span className="payment-status pending">{application.type}</span><h2>{application.number}</h2><p>{application.data.organizationName || application.data.brandName || application.data.institutionName}</p>{application.attachments?.map((attachment) => <button className="text-button" key={attachment.id} onClick={() => openPrivateFile(attachment.id)}>Buka {attachment.name}</button>)}</div><div><strong>{application.status}</strong>{application.status === "SUBMITTED" && <button className="text-button" onClick={() => updateApplicationStatus(application.token, "UNDER_REVIEW")}>Mulai review</button>}{application.status === "UNDER_REVIEW" && <><button className="button button-dark" onClick={() => updateApplicationStatus(application.token, application.type === "SPONSORSHIP" ? "CONFIRMED" : "APPROVED")}>Setujui</button><button className="button button-outline" onClick={() => updateApplicationStatus(application.token, "REJECTED")}>Tolak</button></>}</div></article>)}</div> : <div className="empty-state">Belum ada pengajuan.</div>}
-      <details className="handoff"><summary>Aset dan keputusan organizer yang belum tersedia</summary><ul>{[...MISSING_ASSETS, ...EVENT.unresolved].map((item) => <li key={item}>{item}</li>)}</ul></details>
-    </div>
-  </main>;
 }
 
 function NotFound() {
@@ -918,6 +911,7 @@ export default function App() {
       "/check-in": "Validasi Tiket SEE 2026",
       "/kemitraan": "Kolaborasi SEE 2026",
       "/lembaga": "Pendaftaran Lembaga SEE 2026",
+      "/admin": "Dashboard Operasional SEE 2026",
     };
     const prefix = Object.keys(labels).find((route) => route !== "/" && path.startsWith(route));
     document.title = `${labels[path] || labels[prefix] || "Halaman tidak ditemukan"} | Saudi Education Expo`;
@@ -947,7 +941,7 @@ export default function App() {
   if (path === "/lembaga/daftar/akhwat") return <InstitutionFormPage group="AKHWAT" />;
   if (path.startsWith("/kemitraan/status/")) return <ApplicationStatusPage token={path.split("/")[3]} />;
   if (path.startsWith("/lembaga/status/")) return <ApplicationStatusPage token={path.split("/")[3]} />;
-  if (path === "/admin") return <AdminPage />;
+  if (path === "/admin") return <AdminDashboard />;
   if (path !== "/") return <NotFound />;
   return <Landing />;
 }

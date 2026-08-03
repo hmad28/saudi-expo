@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /payment
+Disallow: /order
+Disallow: /ticket
+Disallow: /check-in
+
+Sitemap: https://saudi-expo.vercel.app/sitemap.xml

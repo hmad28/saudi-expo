@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { EVENT } from "./data/eventConfig";
 import { submitApplication, getApplication } from "./utils/applicationStore";
 import { Icon } from "./components/Icons";
@@ -14,6 +14,13 @@ function ApplicationForm({ type, fields, group }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const optionalFields = new Set(["website", "socialMedia", "instagram", "notes", "estimatedValue"]);
+  useEffect(() => {
+    const dirty = Object.values(data).some((value) => String(value || "").trim()) || Object.values(files).some(Boolean);
+    if (!dirty || busy) return undefined;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ""; };
+    addEventListener("beforeunload", warn);
+    return () => removeEventListener("beforeunload", warn);
+  }, [data, files, busy]);
   const submit = async (event) => {
     event.preventDefault();
     if (type === "INSTITUTION" && Number(data.male || 0) + Number(data.female || 0) !== Number(data.total || 0)) {
@@ -35,14 +42,14 @@ function ApplicationForm({ type, fields, group }) {
     try {
       const app = await submitApplication(type, data, Object.values(files));
       go(`/${type === "INSTITUTION" ? "lembaga" : "kemitraan"}/status/${app.token}`);
-    } catch {
-      setError("Pengajuan belum dapat disimpan. Periksa ruang penyimpanan browser dan coba lagi.");
+    } catch (submitError) {
+      setError(submitError.message || "Pengajuan belum dapat dikirim. Coba lagi.");
       setBusy(false);
     }
   };
   return <form className="application-form" onSubmit={submit}>
     {fields.map(([key, label, inputType = "text"]) => inputType === "textarea"
-      ? <label key={key}>{label}<textarea name={key} required={!optionalFields.has(key)} value={data[key] || ""} onChange={(event) => setData({ ...data, [key]: event.target.value })} /></label>
+      ? <label key={key}>{label}<textarea name={key} autoComplete="off" required={!optionalFields.has(key)} value={data[key] || ""} onChange={(event) => setData({ ...data, [key]: event.target.value })} /></label>
       : <label key={key}>{label}<input autoComplete={inputType === "email" ? "email" : inputType === "tel" ? "tel" : key.toLowerCase().includes("name") ? "organization" : "off"} required={!optionalFields.has(key)} type={inputType} name={key} value={data[key] || ""} onChange={(event) => setData({ ...data, [key]: event.target.value })} /></label>)}
     {type !== "INSTITUTION" && <>
       <label>Logo <small>PNG, JPG, atau WebP</small><input name="logo" type="file" accept=".png,.jpg,.jpeg,.webp" onChange={(event) => setFiles((current) => ({ ...current, logo: event.target.files[0] || null }))} /></label>
@@ -59,4 +66,4 @@ export function BoothPage(){return <Page label="Booth & exhibitor" title="Hadir 
 export function InstitutionLanding(){return <Page label="Pendaftaran lembaga" title="Pilih admin koordinator lembaga." copy="Jalur ikhwan dan akhwat disimpan terpisah sesuai arahan organizer."><div className="application-paths two"><a href="/lembaga/daftar/ikhwan"><strong>Admin Lembaga Ikhwan</strong><p>Koordinator kelompok ikhwan.</p><Icon name="arrow"/></a><a href="/lembaga/daftar/akhwat"><strong>Admin Lembaga Akhwat</strong><p>Koordinator kelompok akhwat.</p><Icon name="arrow"/></a></div></Page>}
 const institutionFields=[["institutionName","Nama lembaga"],["institutionType","Jenis lembaga"],["educationLevel","Jenjang pendidikan"],["address","Alamat lengkap"],["city","Kota atau kabupaten"],["province","Provinsi"],["website","Website"],["socialMedia","Media sosial"],["coordinatorName","Nama koordinator"],["coordinatorRole","Peran koordinator"],["phone","WhatsApp aktif","tel"],["email","Email aktif","email"],["ageRange","Rentang usia"],["attendanceDays","Rencana hari kehadiran"],["total","Estimasi total peserta","number"],["male","Estimasi peserta laki-laki","number"],["female","Estimasi peserta perempuan","number"],["transport","Metode transportasi"],["departureCity","Kota keberangkatan"],["notes","Catatan khusus","textarea"]];
 export function InstitutionFormPage({group}){return <Page label={`Admin lembaga ${group.toLowerCase()}`} title="Daftarkan rencana kunjungan lembaga." copy="Tahap awal hanya memerlukan estimasi. Data nama peserta dikumpulkan setelah pengajuan disetujui."><ApplicationForm type="INSTITUTION" fields={institutionFields} group={group}/></Page>}
-export function ApplicationStatusPage({token}){const app=getApplication(token);if(!app)return <Page label="Status pengajuan" title="Pengajuan tidak ditemukan." copy="Periksa kembali tautan aman yang diberikan setelah pengajuan."/>;return <Page label="Status pengajuan" title={app.number} copy="Simpan tautan aman ini untuk memantau tindak lanjut panitia."><div className="application-status"><span>{app.type}</span><strong>{app.status.replaceAll("_"," ")}</strong><p>Dikirim {new Intl.DateTimeFormat("id-ID",{dateStyle:"long",timeStyle:"short",timeZone:EVENT.timezone}).format(new Date(app.createdAt))} WIB</p>{app.attachments?.length>0&&<p>{app.attachments.length} dokumen tersimpan pada perangkat ini.</p>}<a className="button button-dark" href={EVENT.social.instagram} target="_blank" rel="noreferrer">Hubungi Penyelenggara</a></div></Page>}
+export function ApplicationStatusPage({token}){const [state,setState]=useState({loading:true,app:null,error:""});useEffect(()=>{let active=true;getApplication(token).then(app=>active&&setState({loading:false,app,error:""})).catch(error=>active&&setState({loading:false,app:null,error:error.message}));return()=>{active=false}},[token]);if(state.loading)return <Page label="Status pengajuan" title="Memuat pengajuan…" copy="Mengambil status terbaru dari server."/>;if(!state.app)return <Page label="Status pengajuan" title="Pengajuan tidak ditemukan." copy={state.error||"Periksa kembali tautan aman yang diberikan setelah pengajuan."}/>;const app=state.app;return <Page label="Status pengajuan" title={app.number} copy="Simpan tautan aman ini untuk memantau tindak lanjut panitia."><div className="application-status"><span>{app.type}</span><strong>{app.status.replaceAll("_"," ")}</strong><p>Dikirim {new Intl.DateTimeFormat("id-ID",{dateStyle:"long",timeStyle:"short",timeZone:EVENT.timezone}).format(new Date(app.createdAt))} WIB</p>{app.attachments?.length>0&&<p>{app.attachments.length} dokumen telah diterima panitia.</p>}<a className="button button-dark" href={EVENT.social.instagram} target="_blank" rel="noreferrer">Hubungi Penyelenggara</a></div></Page>}
